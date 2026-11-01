@@ -40,8 +40,9 @@ public class RbacApiTests : IClassFixture<DatabaseFixture>, IDisposable
         var bootStatus = (await client.SendAsync(boot)).StatusCode;
         Assert.True(bootStatus is HttpStatusCode.Created or HttpStatusCode.Conflict);
         var platform = With(_factory.CreateClient(), (await OkJson(await client.PostAsJsonAsync("/api/v1/platform/auth/login", new { email = "root@projex.test", password = Password }))).GetProperty("accessToken").GetString()!);
-        Assert.Equal(HttpStatusCode.Created, (await platform.PostAsJsonAsync("/api/v1/platform/tenants", new
-        { tenantCode = code, tenantName = code, companyCode = "MAIN", companyName = "Main", adminEmail = $"admin@{code}.test", adminPassword = Password, planCode = "pro", seatLimit = 20 })).StatusCode);
+        var provision = await platform.PostAsJsonAsync("/api/v1/platform/tenants", new
+        { tenantCode = code, tenantName = code, companyCode = "MAIN", companyName = "Main", adminEmail = $"admin@{code}.test", adminPassword = Password, planCode = "pro", seatLimit = 20 });
+        Assert.True(provision.StatusCode == HttpStatusCode.Created, await provision.Content.ReadAsStringAsync());
         var login = await OkJson(await client.PostAsJsonAsync("/api/v1/auth/login", new { tenantKey = code, email = $"admin@{code}.test", password = Password }));
         var admin = With(_factory.CreateClient(), login.GetProperty("accessToken").GetString()!);
         var companyId = (await admin.GetFromJsonAsync<JsonElement>("/api/v1/organization/companies"))[0].GetProperty("id").GetGuid();
