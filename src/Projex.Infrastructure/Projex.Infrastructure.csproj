@@ -9,7 +9,7 @@
     <ProjectReference Include="../Projex.Domain/Projex.Domain.csproj" />
     <ProjectReference Include="../Projex.Application/Projex.Application.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
   </ItemGroup>
 </Project>
