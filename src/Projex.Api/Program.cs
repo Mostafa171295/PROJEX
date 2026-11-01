@@ -99,15 +99,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
                 if (!adminActive) context.Fail("The platform administrator is not active.");
                 return;
             }
-            if (context.Principal is null || !Guid.TryParse(context.Principal.FindFirst(TokenIssuer.SessionClaim)?.Value, out var sessionId))
-            { context.Fail("The token is not bound to a session."); return; }
-            context.HttpContext.User = context.Principal;   // lets the tenant context resolve for this lookup
+            if (context.Principal is null
+                || !Guid.TryParse(context.Principal.FindFirst(TokenIssuer.SessionClaim)?.Value, out var sessionId)
+                || !Guid.TryParse(context.Principal.FindFirst("tenant_id")?.Value, out var tenantId))
+            { context.Fail("The token is not bound to an active tenant session."); return; }
+            context.HttpContext.User = context.Principal;
+            // Set the validated tenant explicitly before the interceptor opens a connection for this security check.
+            // Do not rely on ambient HttpContext claim resolution during the authentication event.
+            var tenantContext = context.HttpContext.RequestServices.GetRequiredService<ITenantContext>();
+            ((TenantContext)tenantContext).SetBootstrapTenant(tenantId);
             var sessionDb = context.HttpContext.RequestServices.GetRequiredService<ProjexDbContext>();
             var now = DateTimeOffset.UtcNow;
-            // The tenant must still be Active too: suspending a tenant cuts off tokens that were issued before the suspension.
-            var active = await sessionDb.UserSessions.AsNoTracking().AnyAsync(s => s.Id == sessionId && s.RevokedAt == null && s.ExpiresAt > now
-                && sessionDb.Tenants.Any(t => t.Id == s.TenantId && t.Status == TenantStatus.Active), context.HttpContext.RequestAborted);
-            if (!active) context.Fail("The session was revoked, has expired, or the tenant is not active.");
+            // Check the exact tenant and active user as well as the session. This runs for every authenticated request,
+            // so role revocation, user disablement and tenant suspension take effect immediately.
+            var active = await sessionDb.UserSessions.IgnoreQueryFilters().AsNoTracking().AnyAsync(s =>
+                s.Id == sessionId && s.TenantId == tenantId && s.RevokedAt == null && s.ExpiresAt > now
+                && sessionDb.Tenants.Any(t => t.Id == tenantId && t.Status == TenantStatus.Active)
+                && sessionDb.Users.Any(u => u.Id == s.UserId && u.TenantId == tenantId && u.IsActive),
+                context.HttpContext.RequestAborted);
+            if (!active) context.Fail("The session was revoked, has expired, the user is inactive, or the tenant is not active.");
         }
     };
 });
