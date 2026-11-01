@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Projex.Scheduling.Engine</RootNamespace>
+  </PropertyGroup>
+</Project>

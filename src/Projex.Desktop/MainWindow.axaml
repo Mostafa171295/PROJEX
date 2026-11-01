@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Projex.Desktop.MainWindow"
+        Title="PROJEX ENTERPRISE"
+        Width="1180" Height="760"
+        MinWidth="900" MinHeight="600">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="240,*">
+    <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#172B4D" Padding="20">
+      <DockPanel>
+        <TextBlock Text="PROJEX ENTERPRISE" Foreground="White"
+                   FontSize="20" FontWeight="Bold" />
+        <TextBlock DockPanel.Dock="Right" Text="PROJECT MANAGEMENT PLATFORM"
+                   Foreground="#B8C7DD" VerticalAlignment="Center" />
+      </DockPanel>
+    </Border>
+    <Border Grid.Row="1" Grid.Column="0" Background="#F3F5F8" Padding="16">
+      <StackPanel Spacing="12">
+        <TextBlock Text="WORKSPACE" FontWeight="Bold" Foreground="#64748B" />
+        <Button HorizontalContentAlignment="Left">Dashboard</Button>
+        <Button HorizontalContentAlignment="Left">Projects</Button>
+        <Button x:Name="PlanningButton" HorizontalContentAlignment="Left">Planning &amp; Scheduling</Button>
+        <Button HorizontalContentAlignment="Left">Cost Control</Button>
+        <Button HorizontalContentAlignment="Left">Reports</Button>
+        <Separator />
+        <TextBlock Text="ADMINISTRATION" FontWeight="Bold" Foreground="#64748B" />
+        <Button HorizontalContentAlignment="Left">Organization</Button>
+        <Button HorizontalContentAlignment="Left">Users &amp; Permissions</Button>
+        <Button HorizontalContentAlignment="Left">Settings</Button>
+      </StackPanel>
+    </Border>
+    <ScrollViewer Grid.Row="1" Grid.Column="1">
+      <StackPanel Margin="28" Spacing="18">
+        <TextBlock Text="Welcome to PROJEX ENTERPRISE" FontSize="28" FontWeight="Bold" />
+        <TextBlock Text="Your integrated project planning and cost control workspace."
+                   FontSize="15" Foreground="#64748B" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
+          <Border Grid.Column="0" Background="#F3F6FB" CornerRadius="8" Padding="18">
+            <StackPanel Spacing="8">
+              <TextBlock Text="ACTIVE PROJECTS" Foreground="#64748B" />
+              <TextBlock Text="—" FontSize="30" FontWeight="Bold" />
+              <TextBlock Text="Project portfolio summary" Foreground="#64748B" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="1" Background="#F3F6FB" CornerRadius="8" Padding="18">
+            <StackPanel Spacing="8">
+              <TextBlock Text="SCHEDULE STATUS" Foreground="#64748B" />
+              <TextBlock Text="—" FontSize="30" FontWeight="Bold" />
+              <TextBlock Text="Schedule performance" Foreground="#64748B" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="2" Background="#F3F6FB" CornerRadius="8" Padding="18">
+            <StackPanel Spacing="8">
+              <TextBlock Text="COST PERFORMANCE" Foreground="#64748B" />
+              <TextBlock Text="—" FontSize="30" FontWeight="Bold" />
+              <TextBlock Text="Budget and actual cost" Foreground="#64748B" />
+            </StackPanel>
+          </Border>
+        </Grid>
+        <Border BorderBrush="#DCE3EC" BorderThickness="1" CornerRadius="8" Padding="20">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Foundation build" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="The initial cross-platform desktop shell and API host are in place. Authentication, tenant provisioning, database migrations, and business modules are the next implementation milestones."
+                       TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</Window>

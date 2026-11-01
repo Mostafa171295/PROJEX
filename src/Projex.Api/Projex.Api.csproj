@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>Projex.Api</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Projex.Application/Projex.Application.csproj" />
+    <ProjectReference Include="../Projex.Infrastructure/Projex.Infrastructure.csproj" />
+    <ProjectReference Include="../Projex.Scheduling.Engine/Projex.Scheduling.Engine.csproj" />
+    <ProjectReference Include="../Projex.Cost.Engine/Projex.Cost.Engine.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+  </ItemGroup>
+</Project>

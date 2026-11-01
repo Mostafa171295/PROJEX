@@ -1,0 +1,36 @@
+# .NET build outputs
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# IDEs
+.idea/
+.vscode/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+secrets.json
+**/appsettings.*.local.json
+**/appsettings.Development.json
+*.pfx
+*.p12
+*.key
+*.pem
+
+# Databases and local data
+*.db
+*.sqlite
+*.sqlite3
+**/TestResults/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Publish/build artifacts
+artifacts/
+publish/

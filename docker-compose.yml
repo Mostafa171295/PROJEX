@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: projex-postgres
+    environment:
+      POSTGRES_DB: projex_enterprise
+      # Bootstrap superuser: used ONLY by the init script. The API never connects as this user.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?copy .env.example to .env and set it}
+      PROJEX_OWNER_PASSWORD: ${PROJEX_OWNER_PASSWORD:?copy .env.example to .env and set it}
+      PROJEX_APP_PASSWORD: ${PROJEX_APP_PASSWORD:?copy .env.example to .env and set it}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - projex_pgdata:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d projex_enterprise"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  projex_pgdata:

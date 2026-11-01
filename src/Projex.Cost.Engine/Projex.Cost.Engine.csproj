@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Projex.Cost.Engine</RootNamespace>
+  </PropertyGroup>
+</Project>

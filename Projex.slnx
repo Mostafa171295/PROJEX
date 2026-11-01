@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Projex.Api/Projex.Api.csproj" />
+    <Project Path="src/Projex.Domain/Projex.Domain.csproj" />
+    <Project Path="src/Projex.Application/Projex.Application.csproj" />
+    <Project Path="src/Projex.Infrastructure/Projex.Infrastructure.csproj" />
+    <Project Path="src/Projex.Desktop/Projex.Desktop.csproj" />
+    <Project Path="src/Projex.Scheduling.Engine/Projex.Scheduling.Engine.csproj" />
+    <Project Path="src/Projex.Cost.Engine/Projex.Cost.Engine.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Projex.Domain.Tests/Projex.Domain.Tests.csproj" />
+    <Project Path="tests/Projex.IntegrationTests/Projex.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
