@@ -109,7 +109,8 @@ public class ApiSmokeTests : IClassFixture<DatabaseFixture>, IDisposable
         await using (var conn = await _db.OpenAppAsync(acmeId))
         {
             Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.succeeded'") >= 1);
-            Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.failed'") >= 5);
+            // The fifth failed password attempt is recorded separately as auth.login.locked_out.
+            Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.failed'") >= 4);
             Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.locked_out'") >= 1);
         }
 
