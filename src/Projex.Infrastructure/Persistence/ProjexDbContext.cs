@@ -105,6 +105,9 @@ public sealed class ProjexDbContext(
             e.Property(x => x.Action).HasMaxLength(100).IsRequired();
             e.Property(x => x.Details).HasColumnType("jsonb");
             e.Property(x => x.IpAddress).HasMaxLength(64);
+            // Keep EF's insert ordering aligned with the database FK: bootstrap creates
+            // the admin and its first audit event in the same SaveChanges call.
+            e.HasOne<PlatformAdmin>().WithMany().HasForeignKey(x => x.AdminId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<Company>(e =>
         {
