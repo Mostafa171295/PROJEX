@@ -56,8 +56,7 @@ public sealed class LiveGanttWindow : Window
         {
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("90,*,95,120,120,85,95,90"), MinHeight = 58, Background = rows.Children.Count % 2 == 0 ? Brushes.White : Brush("#FAFBFD") };
             AddCell(row, activity.IsCritical ? $"{activity.ActivityCode} ★" : activity.ActivityCode, 0);
-            AddCell(row, $"{activity.Name}
-{activity.WbsCode} · {activity.WbsName}", 1);
+            AddCell(row, $"{activity.Name}{Environment.NewLine}{activity.WbsCode} · {activity.WbsName}", 1);
             AddCell(row, $"{activity.DurationMinutes / 480m:0.##} wd", 2);
             AddCell(row, activity.PlannedStart?.ToString("yyyy-MM-dd") ?? "—", 3);
             AddCell(row, activity.PlannedFinish?.ToString("yyyy-MM-dd") ?? "—", 4);
