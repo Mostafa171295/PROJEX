@@ -33,6 +33,9 @@ using Projex.Scheduling.Engine.Calendars;
 using Projex.Scheduling.Engine.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+// When installed as a Windows Service, run without an interactive console and
+// use the executable directory as the content root for configuration files.
+builder.Host.UseWindowsService(options => options.ServiceName = "PROJEX API");
 var jwtKey = builder.Configuration["Authentication:JwtSigningKey"];
 if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
     throw new InvalidOperationException("Authentication:JwtSigningKey must be configured with at least 32 bytes. Use a secret manager/environment variable in production.");
