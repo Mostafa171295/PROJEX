@@ -136,7 +136,10 @@ public static class PlatformEndpoints
 
             var startsAt = request.StartsAt ?? DateTimeOffset.UtcNow;
             var entitlements = request.ModuleEntitlements is { ValueKind: not JsonValueKind.Undefined and not JsonValueKind.Null } m ? m.GetRawText() : null;
-            var current = await LatestSubscription(db, tenantId, ct);
+            // This is a write path: LatestSubscription is intentionally AsNoTracking for read-only endpoints.
+            // Load the current row as tracked here so Change(...) is persisted by SaveChangesAsync.
+            var current = await db.Subscriptions.Where(s => s.TenantId == tenantId)
+                .OrderByDescending(s => s.StartsAt).FirstOrDefaultAsync(ct);
             var isLive = request.Status is SubscriptionStatus.Trial or SubscriptionStatus.Active or SubscriptionStatus.PastDue;
             try
             {
