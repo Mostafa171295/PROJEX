@@ -104,7 +104,7 @@ public static class AccountEndpoints
             if (await db.Users.AnyAsync(x => x.NormalizedEmail == normalized, ct)) return Results.Conflict(new { error = "A user with this email already exists." });
 
             await using var tx = await db.Database.BeginTransactionAsync(ct);
-            var created = new ProjexUser { Id = Guid.NewGuid(), UserName = $"{tenantKey}:{email}", Email = email, TenantId = tid, IsActive = true };
+            var created = new ProjexUser { Id = Guid.NewGuid(), UserName = $"{tenantKey}.{email}", Email = email, TenantId = tid, IsActive = true };
             try
             {
                 var result = await users.CreateAsync(created, request.Password);
