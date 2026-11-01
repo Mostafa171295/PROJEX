@@ -103,7 +103,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
                 || !Guid.TryParse(context.Principal.FindFirst(TokenIssuer.SessionClaim)?.Value, out var sessionId)
                 || !Guid.TryParse(context.Principal.FindFirst("tenant_id")?.Value, out var tenantId))
             { context.Fail("The token is not bound to an active tenant session."); return; }
-            context.HttpContext.User = context.Principal;
+            // Set the tenant explicitly for the security check. Do not assign the principal to HttpContext.User here:
+            // JwtBearer must publish it only after the token has passed validation, otherwise context.Fail can leave
+            // an authenticated principal on the request and allow authorization to proceed.
             // Set the validated tenant explicitly before the interceptor opens a connection for this security check.
             // Do not rely on ambient HttpContext claim resolution during the authentication event.
             var tenantContext = context.HttpContext.RequestServices.GetRequiredService<ITenantContext>();
