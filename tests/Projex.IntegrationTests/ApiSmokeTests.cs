@@ -93,7 +93,8 @@ public class ApiSmokeTests : IClassFixture<DatabaseFixture>, IDisposable
             new { planCode = "pro", status = "Active", seatLimit = 1 })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await platform.PutAsJsonAsync($"/api/v1/platform/tenants/{acmeId}/subscription",
             new { planCode = "pro", status = "Active", seatLimit = 5 })).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await acmeAdmin.PostAsJsonAsync("/api/v1/identity/users", new { email = "eng2@acme.test", password = Password, companyId })).StatusCode);
+        var secondEngineer = await acmeAdmin.PostAsJsonAsync("/api/v1/identity/users", new { email = "eng2@acme.test", password = Password, companyId });
+        Assert.True(secondEngineer.StatusCode == HttpStatusCode.Created, $"Expected Created after increasing the seat limit, got {secondEngineer.StatusCode}: {await secondEngineer.Content.ReadAsStringAsync()}");
 
         // FR-AUTH-005: five failures lock the account; even the right password is then refused.
         for (var i = 0; i < 5; i++)
