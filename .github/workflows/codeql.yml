@@ -33,3 +33,7 @@ jobs:
 
       - name: Analyze
         uses: github/codeql-action/analyze@v3
+        with:
+          # Keep analysis available without requiring the repository's paid/optional
+          # code-scanning upload feature to be enabled.
+          upload: false

@@ -1,0 +1,162 @@
+name: Windows Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag (leave empty to create a build-N tag)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Restore, build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            global.json
+
+      - name: Restore
+        run: dotnet restore Projex.slnx
+
+      - name: Build
+        run: dotnet build Projex.slnx --configuration Release --no-restore
+
+      - name: Test (includes PostgreSQL integration tests)
+        run: dotnet test Projex.slnx --configuration Release --no-build --logger "trx;LogFileName=projex-tests.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: projex-test-results
+          path: "**/TestResults/*.trx"
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish-windows:
+    name: Publish portable Windows package
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            global.json
+
+      - name: Restore
+        run: dotnet restore Projex.slnx
+
+      - name: Publish Desktop (self-contained win-x64)
+        run: >
+          dotnet publish src/Projex.Desktop/Projex.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output artifacts/package/Desktop
+          -p:DebugType=None
+          -p:DebugSymbols=false
+
+      - name: Publish API (self-contained win-x64)
+        run: >
+          dotnet publish src/Projex.Api/Projex.Api.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output artifacts/package/API
+          -p:DebugType=None
+          -p:DebugSymbols=false
+
+      - name: Add launch helper and package instructions
+        shell: pwsh
+        run: |
+          @'
+          @echo off
+          cd /d "%~dp0Desktop"
+          start "" "Projex.Desktop.exe"
+          '@ | Set-Content -Encoding ascii artifacts/package/Start-PROJEX.bat
+
+          @'
+          PROJEX ENTERPRISE - Windows x64 portable package
+
+          DESKTOP
+          Double-click Start-PROJEX.bat or Desktop\Projex.Desktop.exe.
+          Keep all files in the Desktop folder together.
+
+          API
+          Run API\Projex.Api.exe from a terminal when the API is needed.
+          The API requires PostgreSQL and these environment variables:
+          ConnectionStrings__Projex
+          Authentication__JwtSigningKey (at least 32 bytes)
+          It does not include a database server or production secrets.
+
+          REQUIREMENTS
+          Windows 10/11 x64. No separate .NET runtime installation is required.
+          '@ | Set-Content -Encoding utf8 artifacts/package/README-RUN.txt
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          $zip = "artifacts/PROJEX-Windows-win-x64.zip"
+          Compress-Archive -Path "artifacts/package/*" -DestinationPath $zip -CompressionLevel Optimal
+          if (!(Test-Path $zip)) { throw "ZIP package was not created." }
+          if (!(Test-Path "artifacts/package/Desktop/Projex.Desktop.exe")) { throw "Desktop executable is missing." }
+          if (!(Test-Path "artifacts/package/API/Projex.Api.exe")) { throw "API executable is missing." }
+
+      - name: Determine release tag
+        id: release_meta
+        shell: pwsh
+        env:
+          INPUT_TAG: ${{ inputs.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          if ($env:EVENT_NAME -eq "push") {
+            $tag = $env:REF_NAME
+          } elseif (![string]::IsNullOrWhiteSpace($env:INPUT_TAG)) {
+            $tag = $env:INPUT_TAG.Trim()
+          } else {
+            $tag = "build-$($env:RUN_NUMBER)"
+          }
+          "tag_name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Publish GitHub Release and attach ZIP
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
+          name: PROJEX ${{ steps.release_meta.outputs.tag_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(steps.release_meta.outputs.tag_name, 'preview') }}
+          files: artifacts/PROJEX-Windows-win-x64.zip

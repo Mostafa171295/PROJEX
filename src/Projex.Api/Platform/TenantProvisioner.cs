@@ -62,7 +62,7 @@ public sealed class TenantProvisioner(ProjexDbContext db, UserManager<ProjexUser
             db.Companies.Add(company);
 
             var email = r.AdminEmail.Trim();
-            var admin = new ProjexUser { Id = Guid.NewGuid(), UserName = $"{tenant.Code}:{email}", Email = email, TenantId = tenant.Id, EmailConfirmed = false, IsActive = true };
+            var admin = new ProjexUser { Id = Guid.NewGuid(), UserName = $"{tenant.Code}.{email}", Email = email, TenantId = tenant.Id, EmailConfirmed = false, IsActive = true };
             var userResult = await users.CreateAsync(admin, r.AdminPassword);
             if (!userResult.Succeeded) throw new ProvisioningException(400, "The administrator account was rejected.", userResult.Errors.Select(e => e.Description));
             // The first administrator holds the built-in CompanyAdmin system role, tenant-wide.
