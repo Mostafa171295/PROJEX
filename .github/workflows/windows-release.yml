@@ -111,17 +111,17 @@ jobs:
 
           DESKTOP
           Double-click Start-PROJEX.bat or Desktop\Projex.Desktop.exe.
-          The Desktop folder contains the self-contained application and its
-          runtime dependencies. Keep the files together.
+          Keep all files in the Desktop folder together.
 
           API
           Run API\Projex.Api.exe from a terminal when the API is needed.
-          The API requires a reachable PostgreSQL database and valid database
-          configuration/environment variables. It is not a standalone database.
+          The API requires PostgreSQL and these environment variables:
+          ConnectionStrings__Projex
+          Authentication__JwtSigningKey (at least 32 bytes)
+          It does not include a database server or production secrets.
 
           REQUIREMENTS
           Windows 10/11 x64. No separate .NET runtime installation is required.
-          This package does not include PostgreSQL or production secrets.
           '@ | Set-Content -Encoding utf8 artifacts/package/README-RUN.txt
 
       - name: Create ZIP
@@ -152,7 +152,7 @@ jobs:
           "tag_name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Publish GitHub Release and attach ZIP
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.release_meta.outputs.tag_name }}
           target_commitish: ${{ github.sha }}
