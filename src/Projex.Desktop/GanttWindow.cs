@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Avalonia.Layout;
 
@@ -126,7 +127,7 @@ public sealed class GanttWindow : Window
                 AddRect(_timeline, 12 + row.BaselineStartDay.Value * _dayWidth, y + 7, row.BaselineDurationDays * _dayWidth, 6, "#CBD5E1", 3);
             var barColor = row.IsCritical ? "#D9485F" : "#3678C8";
             AddRect(_timeline, barX, barY, Math.Max(8, row.DurationDays * _dayWidth), 22, barColor, 5);
-            AddRect(_timeline, barX, barY, Math.Max(0, row.DurationDays * _dayWidth * row.PercentComplete / 100d), 22, row.IsCritical ? "#A92E43" : "#20599A", 5);
+            AddRect(_timeline, barX, barY, Math.Max(0, row.DurationDays * _dayWidth * (double)row.PercentComplete / 100d), 22, row.IsCritical ? "#A92E43" : "#20599A", 5);
             AddText(_timeline, $"{row.PercentComplete:0}%", barX + 5, barY + 3, 10, "#FFFFFF", true);
             var hit = new Border { Width = Math.Max(14, row.DurationDays * _dayWidth), Height = 30, Background = Brushes.Transparent, Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand) };
             Canvas.SetLeft(hit, barX); Canvas.SetTop(hit, barY - 4); hit.PointerPressed += (_, _) => ShowActivity(row); _timeline.Children.Add(hit);
