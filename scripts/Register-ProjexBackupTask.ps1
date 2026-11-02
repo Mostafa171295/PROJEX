@@ -37,7 +37,8 @@ foreach ($name in @("PGPASSWORD", "PROJEX_BACKUP_ENCRYPTION_PASSWORD")) {
 $null = New-Item -ItemType Directory -Path $BackupDirectory -Force
 $resolvedScript = (Resolve-Path -LiteralPath $BackupScriptPath).Path
 $resolvedDirectory = (Resolve-Path -LiteralPath $BackupDirectory).Path
-$powerShell = Join-Path $PSHOME "powershell.exe"
+# Reuse the current PowerShell engine so the task works when registered from Windows PowerShell or PowerShell 7.
+$powerShell = (Get-Process -Id $PID).Path
 $arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{0}" -BackupDirectory "{1}" -RetentionDays {2}' -f $resolvedScript, $resolvedDirectory, $RetentionDays
 $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -Daily -At $parsedTime
