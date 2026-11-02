@@ -91,9 +91,12 @@ public class ApiSmokeTests : IClassFixture<DatabaseFixture>, IDisposable
         // The seat limit cannot be lowered below the active users; raising it lets the user in.
         Assert.Equal(HttpStatusCode.Conflict, (await platform.PutAsJsonAsync($"/api/v1/platform/tenants/{acmeId}/subscription",
             new { planCode = "pro", status = "Active", seatLimit = 1 })).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await platform.PutAsJsonAsync($"/api/v1/platform/tenants/{acmeId}/subscription",
-            new { planCode = "pro", status = "Active", seatLimit = 5 })).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await acmeAdmin.PostAsJsonAsync("/api/v1/identity/users", new { email = "eng2@acme.test", password = Password, companyId })).StatusCode);
+        var increasedSubscription = await platform.PutAsJsonAsync($"/api/v1/platform/tenants/{acmeId}/subscription",
+            new { planCode = "pro", status = "Active", seatLimit = 5 });
+        Assert.Equal(HttpStatusCode.OK, increasedSubscription.StatusCode);
+        Assert.Equal(5, (await increasedSubscription.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("seatLimit").GetInt32());
+        var secondEngineer = await acmeAdmin.PostAsJsonAsync("/api/v1/identity/users", new { email = "eng2@acme.test", password = Password, companyId });
+        Assert.True(secondEngineer.StatusCode == HttpStatusCode.Created, $"Expected Created after increasing the seat limit, got {secondEngineer.StatusCode}: {await secondEngineer.Content.ReadAsStringAsync()}");
 
         // FR-AUTH-005: five failures lock the account; even the right password is then refused.
         for (var i = 0; i < 5; i++)
@@ -106,7 +109,8 @@ public class ApiSmokeTests : IClassFixture<DatabaseFixture>, IDisposable
         await using (var conn = await _db.OpenAppAsync(acmeId))
         {
             Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.succeeded'") >= 1);
-            Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.failed'") >= 5);
+            // The fifth failed password attempt is recorded separately as auth.login.locked_out.
+            Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.failed'") >= 4);
             Assert.True(await DatabaseFixture.Scalar<long>(conn, "SELECT count(*) FROM audit.audit_logs WHERE action='auth.login.locked_out'") >= 1);
         }
 

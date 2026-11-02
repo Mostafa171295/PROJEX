@@ -53,3 +53,27 @@ jobs:
           path: "**/TestResults/*.trx"
           if-no-files-found: warn
           retention-days: 14
+
+  validate-windows-deployment:
+    name: Validate Windows deployment scripts
+    runs-on: windows-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse PowerShell migration script
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "scripts/migrate.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+          }
+          Write-Host "PowerShell migration script syntax is valid."

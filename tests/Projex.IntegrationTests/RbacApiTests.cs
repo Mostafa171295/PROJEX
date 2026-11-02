@@ -12,9 +12,11 @@ public class RbacApiTests : IClassFixture<DatabaseFixture>, IDisposable
 {
     private const string BootstrapKey = "test-bootstrap-key-0123456789", Password = "Str0ng!Passw0rd#2026";
     private readonly WebApplicationFactory<Program> _factory;
+    private readonly DatabaseFixture _db;
 
     public RbacApiTests(DatabaseFixture db)
     {
+        _db = db;
         Environment.SetEnvironmentVariable("ConnectionStrings__Projex", db.AppPooledConnectionString);
         Environment.SetEnvironmentVariable("Authentication__JwtSigningKey", "integration-test-signing-key-at-least-32-bytes!!");
         Environment.SetEnvironmentVariable("Bootstrap__Key", BootstrapKey);
@@ -73,7 +75,12 @@ public class RbacApiTests : IClassFixture<DatabaseFixture>, IDisposable
         var anon = _factory.CreateClient();
         var engLogin = await OkJson(await anon.PostAsJsonAsync("/api/v1/auth/login", new { tenantKey = "rbac", email = "eng@rbac.test", password = Password }));
         var engId = engLogin.GetProperty("userId").GetGuid();
-        var eng = With(_factory.CreateClient(), engLogin.GetProperty("accessToken").GetString()!);
+        var engAccessToken = engLogin.GetProperty("accessToken").GetString()!;
+        var tokenPayload = engAccessToken.Split('.')[1].Replace('-', '+').Replace('_', '/');
+        tokenPayload = tokenPayload.PadRight((tokenPayload.Length + 3) / 4 * 4, '=');
+        using var tokenClaims = JsonDocument.Parse(Convert.FromBase64String(tokenPayload));
+        var engSessionId = Guid.Parse(tokenClaims.RootElement.GetProperty("session_id").GetString()!);
+        var eng = With(_factory.CreateClient(), engAccessToken);
         Assert.Equal(0, (await eng.GetFromJsonAsync<JsonElement>("/api/v1/projects")).GetArrayLength());
         Assert.Equal(HttpStatusCode.Forbidden, (await eng.GetAsync("/api/v1/identity/roles")).StatusCode);   // not an administrator
 
@@ -101,6 +108,17 @@ public class RbacApiTests : IClassFixture<DatabaseFixture>, IDisposable
         var wide = await OkJson(await admin.PostAsJsonAsync($"/api/v1/identity/users/{engId}/roles", new { roleId = viewerRoleId }));
         Assert.Equal(HttpStatusCode.OK, (await eng.GetAsync("/api/v1/auth/me")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/v1/identity/users/{engId}/roles/{wide.GetProperty("id").GetGuid()}")).StatusCode);
+        var tenantInfo = await admin.GetFromJsonAsync<JsonElement>("/api/v1/auth/me");
+        await using (var sessionConnection = await _db.OpenAppAsync(tenantInfo.GetProperty("tenantId").GetGuid()))
+        {
+            var revokedSessions = await DatabaseFixture.Scalar<long>(sessionConnection,
+                "SELECT count(*) FROM identity.user_sessions WHERE user_id = @userId AND revoked_at IS NOT NULL", ("userId", engId));
+            Assert.True(revokedSessions > 0, $"Expected role revocation to persist a revoked session for user {engId}, found {revokedSessions}.");
+            var tokenSessionRevoked = await DatabaseFixture.Scalar<bool>(sessionConnection,
+                "SELECT revoked_at IS NOT NULL FROM identity.user_sessions WHERE id = @sessionId AND user_id = @userId",
+                ("sessionId", engSessionId), ("userId", engId));
+            Assert.True(tokenSessionRevoked, $"The exact session in the engineer's access token ({engSessionId}) was not revoked.");
+        }
         Assert.Equal(HttpStatusCode.Unauthorized, (await eng.GetAsync("/api/v1/auth/me")).StatusCode);
 
         // The only company administrator cannot lose the role or be disabled.
