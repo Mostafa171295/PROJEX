@@ -159,15 +159,37 @@ jobs:
           prerelease: true
           overwrite_files: true
           files: artifacts/PROJEX-Windows-win-x64.zip
+      - name: Enforce the single ZIP release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $assetNames = @(gh release view latest --json assets --jq '.assets[].name')
+          foreach ($asset in $assetNames) {
+            if ($asset -ne "PROJEX-Windows-win-x64.zip") {
+              gh release delete-asset latest $asset --yes
+              if ($LASTEXITCODE -ne 0) { throw "Could not remove unexpected release asset '$asset'." }
+            }
+          }
+          if ($assetNames -notcontains "PROJEX-Windows-win-x64.zip") {
+            throw "The latest release does not contain the required PROJEX ZIP."
+          }
+
       - name: Remove superseded releases and version tags
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $oldTags = gh release list --limit 1000 --json tagName --jq '.[] | select(.tagName != "latest") | .tagName'
-          foreach ($tag in $oldTags) {
+          $oldReleaseTags = @(gh release list --limit 1000 --json tagName --jq '.[] | select(.tagName != "latest") | .tagName')
+          foreach ($tag in $oldReleaseTags) {
             if (![string]::IsNullOrWhiteSpace($tag)) {
               gh release delete $tag --yes --cleanup-tag
               if ($LASTEXITCODE -ne 0) { throw "Could not remove superseded release/tag '$tag'." }
             }
+          }
+
+          $remainingTags = @(git ls-remote --tags --refs origin | ForEach-Object { ($_ -split '\\s+')[1] -replace '^refs/tags/', '' } | Where-Object { $_ -ne "latest" })
+          foreach ($tag in $remainingTags) {
+            git push origin --delete $tag
+            if ($LASTEXITCODE -ne 0) { throw "Could not remove superseded version tag '$tag'." }
           }
