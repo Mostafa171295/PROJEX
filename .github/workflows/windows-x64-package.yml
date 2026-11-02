@@ -1,0 +1,102 @@
+name: Windows x64 desktop package
+
+on:
+  push:
+    branches:
+      - build/windows10-x64
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-x64-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish-windows-x64:
+    name: Test and publish Windows x64 desktop app
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Show SDK
+        run: dotnet --info
+
+      - name: Restore desktop tests
+        run: dotnet restore tests/Projex.Desktop.Tests/Projex.Desktop.Tests.csproj
+
+      - name: Build desktop tests
+        run: dotnet build tests/Projex.Desktop.Tests/Projex.Desktop.Tests.csproj --configuration Release --no-restore
+
+      - name: Run desktop tests
+        run: dotnet test tests/Projex.Desktop.Tests/Projex.Desktop.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=desktop-tests.trx"
+
+      - name: Publish self-contained Windows x64 app
+        run: >-
+          dotnet publish src/Projex.Desktop/Projex.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output "${{ runner.temp }}\projex-win-x64"
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+
+      - name: Add package instructions
+        shell: pwsh
+        run: |
+          @'
+          PROJEX Desktop - Windows x64
+          ============================
+
+          This is a self-contained Windows x64 desktop build. It does not require
+          a separately installed .NET runtime.
+
+          Run Projex.Desktop.exe to start the desktop application.
+
+          IMPORTANT:
+          - This package contains the desktop client only.
+          - The PROJEX API and PostgreSQL database are separate services and
+            must be installed, configured, and running for server-backed features.
+          - Configure the API connection using the connection dialog in the app.
+          - This is a development preview, not a production-ready release.
+          - Do not use production data until authentication, tenant isolation,
+            database migrations, backups, and security controls are independently
+            validated.
+
+          Target: Windows x64 (win-x64)
+          '@ | Set-Content -LiteralPath "${{ runner.temp }}\projex-win-x64\README-Windows.txt" -Encoding UTF8
+
+      - name: Create ZIP package
+        shell: pwsh
+        run: |
+          $package = "${{ runner.temp }}\PROJEX-Windows-x64"
+          Compress-Archive -Path "${{ runner.temp }}\projex-win-x64\*" -DestinationPath "$package.zip" -Force
+          Get-Item "$package.zip" | Format-List Name,Length,FullName
+
+      - name: Upload Windows x64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROJEX-Windows-x64
+          path: "${{ runner.temp }}\PROJEX-Windows-x64.zip"
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROJEX-Windows-x64-test-results
+          path: "**/TestResults/*.trx"
+          if-no-files-found: ignore
+          retention-days: 14
