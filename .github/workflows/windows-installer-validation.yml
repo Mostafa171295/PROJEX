@@ -35,7 +35,7 @@ jobs:
       - name: Compile installer definition
         shell: pwsh
         run: |
-          $compiler = Join-Path $env:ProgramFiles "(x86)\Inno Setup 6\ISCC.exe"
+          $compiler = Join-Path ([Environment]::GetFolderPath("ProgramFilesX86")) "Inno Setup 6\ISCC.exe"
           if (!(Test-Path $compiler)) { throw "Inno Setup compiler was not installed." }
           & $compiler /DMyAppVersion=0.0.0-ci installer/PROJEX.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed ($LASTEXITCODE)." }
