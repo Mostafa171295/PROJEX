@@ -109,7 +109,7 @@ jobs:
           The manager provides API service controls, PostgreSQL service status, API liveness/readiness checks, and maintenance shortcuts.
 
           MULTI-DEVICE SECURITY
-          The API starts in loopback-only mode. On the dedicated server, run Server\\Manager\\Projex.ServerManager.exe as Administrator and choose Enable secure LAN access. The wizard requires a trusted PFX certificate, a DNS name that resolves to the server, and the private client subnet. It configures an HTTPS listener and a subnet-scoped Windows Firewall rule.
+          The API starts in loopback-only mode. On the dedicated server, run Server\Manager\Projex.ServerManager.exe as Administrator and choose Enable secure LAN access. The wizard requires a trusted PFX certificate, a DNS name that resolves to the server, and the private client subnet. It configures an HTTPS listener and a subnet-scoped Windows Firewall rule.
           Install the issuing certificate authority on each client device and use the HTTPS address shown by the wizard. Plan certificate renewal before expiry.
           Never expose PostgreSQL port 5432 or the local API HTTP port to client devices or the public Internet. Choose Disable secure LAN access to return to loopback-only mode.
 
