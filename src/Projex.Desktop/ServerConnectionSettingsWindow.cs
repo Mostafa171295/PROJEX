@@ -26,6 +26,7 @@ internal static class ServerAddressPolicy
         }
 
         address = new Uri(parsed.GetLeftPart(UriPartial.Path).TrimEnd('/') + "/");
+        error = string.Empty;
         return true;
     }
 }
