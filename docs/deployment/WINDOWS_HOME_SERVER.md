@@ -35,13 +35,11 @@ Remove only the service (not published files or database data):
 
 ## Automated database and service setup on Windows
 
-The optional server payload includes `Initialize-ProjexDatabase.ps1` and the numbered SQL migrations. Install PostgreSQL 16 Server separately and make sure its Windows service is running. The PostgreSQL client tool `psql.exe` must also be available on PATH. The PROJEX installer does not silently install or reconfigure a database server.
+The server payload includes an automated bootstrap script and the numbered SQL migrations. On a supported Windows 10/11 x64 machine with Microsoft's App Installer (winget) and Internet access, the Server Control Center installs PostgreSQL 16 automatically if it is missing. It reuses an existing PostgreSQL 16 service and refuses to replace another PostgreSQL major version or take over an occupied database port.
 
-Open PowerShell as Administrator and run the setup script from the installed server folder:
+Open `Server/Manager/Projex.ServerManager.exe` as Administrator and select **Run server setup**. The bootstrap installs PostgreSQL 16 through the exact `PostgreSQL.PostgreSQL.16` WinGet package, whose installer integrity is checked by WinGet, configures it unattended with a locally generated password, and then provisions the PROJEX database and API service. The temporary installer options are ACL-restricted; the generated database administrator credential is protected with Windows DPAPI and removed after successful provisioning. If setup is interrupted, the protected recovery credential is retained so the operation can be retried.
 
-~~~powershell
-& "C:\Program Files\PROJEX\Server\Scripts\Initialize-ProjexDatabase.ps1" -PublishDirectory "C:\Program Files\PROJEX\Server\API"
-~~~
+The setup prompts for one new `projex_owner` migration password (minimum 32 UTF-8 bytes) and confirmation. Save this password in an approved password vault. If PostgreSQL 16 was already installed before PROJEX, setup instead asks for its administrator password without echoing it.
 
 The script:
 
