@@ -92,7 +92,7 @@ On each employee PC:
 4. Select **Test connection**. The client checks `/health/live` and `/health/ready` separately so an API outage can be distinguished from a database-readiness failure.
 5. Save the server address, then sign in with the employee's tenant key and account credentials.
 
-The desktop client permits plain HTTP only for loopback/local development addresses. Remote HTTP, URL-embedded credentials, query strings and fragments are rejected. The saved setting contains only the server URL; passwords and access/refresh tokens are not persisted. Changing the server while signed in signs out of the previous server before applying the new endpoint.
+The desktop client permits plain HTTP only for loopback/local development addresses. Remote HTTP, URL-embedded credentials, query strings and fragments are rejected. The saved setting contains only the server URL; passwords and access/refresh tokens are not persisted. Changing the server while signed in signs out of the previous server before applying the new endpoint. While signed in, the desktop header rechecks `/health/live` and `/health/ready` every 15 seconds and displays API availability separately from database readiness. Monitoring stops on sign-out or when the desktop window closes.
 
 If the API is available but readiness fails, check PostgreSQL and the API service on the host. If the API cannot be reached, check VPN connectivity, DNS, the HTTPS certificate, reverse-proxy routing and firewall rules. Do not point employee clients at PostgreSQL port 5432.
 

@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace Projex.Desktop;
 
@@ -20,10 +21,12 @@ public partial class MainWindow : Window
     private Uri? _serverAddress;
     private ProjectItem? _selectedProject;
     private List<ProjectItem> _projects = [];
+    private CancellationTokenSource? _connectionMonitorCts;
 
     public MainWindow()
     {
         AvaloniaXamlLoader.Load(this);
+        Closed += (_, _) => StopConnectionMonitoring();
         this.FindControl<TextBox>("ServerUrlBox")!.Text = LoadServerAddress();
         this.FindControl<Button>("LoginButton")!.Click += async (_, _) => await LoginAsync();
         this.FindControl<Button>("LogoutButton")!.Click += async (_, _) => await LogoutAsync();
@@ -124,7 +127,8 @@ public partial class MainWindow : Window
             this.FindControl<TextBlock>("UserLabel")!.Text = login.Email;
             this.FindControl<TextBlock>("ServerAddressLabel")!.Text = address.ToString();
             this.FindControl<TextBlock>("ConnectionText")!.Text = "Session active";
-            this.FindControl<Avalonia.Controls.Shapes.Ellipse>("ConnectionDot")!.Fill = Brush("#22C55E");
+            this.FindControl<Avalonia.Controls.Shapes.Ellipse>("ConnectionDot")!.Fill = Brush("#E5A93D");
+            StartConnectionMonitoring(address);
             await LoadWorkspaceAsync();
         }
         catch (Exception ex)
@@ -132,6 +136,60 @@ public partial class MainWindow : Window
             status.Text = ex.Message;
         }
         finally { button.IsEnabled = true; }
+    }
+
+    private void StartConnectionMonitoring(Uri address)
+    {
+        StopConnectionMonitoring();
+        var cancellation = new CancellationTokenSource();
+        _connectionMonitorCts = cancellation;
+        _ = MonitorConnectionAsync(address, cancellation);
+    }
+
+    private void StopConnectionMonitoring()
+    {
+        _connectionMonitorCts?.Cancel();
+        _connectionMonitorCts = null;
+    }
+
+    private async Task MonitorConnectionAsync(Uri address, CancellationTokenSource owner)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(15));
+        try
+        {
+            do
+            {
+                var status = await ServerHealthProbe.CheckAsync(_http, address, owner.Token);
+                if (owner.IsCancellationRequested) break;
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (owner.IsCancellationRequested || _accessToken is null
+                        || !Equals(_serverAddress, address))
+                        return;
+
+                    var (label, color) = status switch
+                    {
+                        ServerHealthStatus.Ready => ("API and database online", "#22C55E"),
+                        ServerHealthStatus.DatabaseUnavailable => ("API online · Database unavailable", "#E5A93D"),
+                        _ => ("API unavailable", "#DC6B45")
+                    };
+                    this.FindControl<TextBlock>("ConnectionText")!.Text = label;
+                    this.FindControl<Avalonia.Controls.Shapes.Ellipse>("ConnectionDot")!.Fill = Brush(color);
+                });
+
+            } while (await timer.WaitForNextTickAsync(owner.Token));
+        }
+        catch (OperationCanceledException) when (owner.IsCancellationRequested)
+        {
+            // Expected when the user signs out or closes the window.
+        }
+        finally
+        {
+            if (ReferenceEquals(_connectionMonitorCts, owner))
+                _connectionMonitorCts = null;
+            owner.Dispose();
+        }
     }
 
     private void SaveServerAddress(Uri address)
@@ -482,6 +540,7 @@ public partial class MainWindow : Window
 
     private async Task LogoutAsync()
     {
+        StopConnectionMonitoring();
         if (_serverAddress is not null && !string.IsNullOrWhiteSpace(_accessToken))
         {
             try

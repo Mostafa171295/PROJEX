@@ -11,5 +11,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Projex.Domain.Tests/Projex.Domain.Tests.csproj" />
     <Project Path="tests/Projex.IntegrationTests/Projex.IntegrationTests.csproj" />
+    <Project Path="tests/Projex.Desktop.Tests/Projex.Desktop.Tests.csproj" />
   </Folder>
 </Solution>
