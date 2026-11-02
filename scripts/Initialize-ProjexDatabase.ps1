@@ -65,7 +65,7 @@ elseif ($SslMode -eq "VerifyFull" -and ([string]::IsNullOrWhiteSpace($RootCertif
 }
 
 $psql = (Get-Command $PsqlPath -ErrorAction Stop).Source
- $adminSecure = Read-Host "PostgreSQL administrator password for '$AdminUser' (input is hidden)" -AsSecureString
+$adminSecure = Read-Host "PostgreSQL administrator password for '$AdminUser' (input is hidden)" -AsSecureString
 $adminPassword = ConvertFrom-SecureInput $adminSecure
 if ([string]::IsNullOrEmpty($adminPassword)) { throw "The PostgreSQL administrator password cannot be empty." }
 
@@ -95,7 +95,7 @@ try {
     $ownerSql = ConvertTo-SqlLiteral $ownerPassword
     $appSql = ConvertTo-SqlLiteral $appPassword
     $sql = @"
-DO $projex$
+DO `$projex`$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'projex_owner') THEN
         EXECUTE format('CREATE ROLE projex_owner LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE', $ownerSql);
@@ -108,7 +108,7 @@ BEGIN
         EXECUTE format('ALTER ROLE projex_app WITH LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB', $appSql);
     END IF;
 END
-$projex$;
+`$projex`$;
 SELECT format('CREATE DATABASE %I OWNER projex_owner', '$Database')
 WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '$Database') \gexec
 ALTER DATABASE "$Database" OWNER TO projex_owner;
