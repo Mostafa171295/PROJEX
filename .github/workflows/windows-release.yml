@@ -100,7 +100,7 @@ jobs:
           PROJEX ENTERPRISE - Windows x64 package
 
           CLIENT
-          Run Start-PROJEX.bat or Desktop\Projex.Desktop.exe on each user workstation.
+          Run PowerShell as Administrator and execute .\Install-PROJEX-Client.ps1 to install only the desktop client and create shortcuts.
           In PROJEX connection settings, enter the server HTTPS address. Client devices do not need PostgreSQL or the API service.
 
           DEDICATED SERVER
