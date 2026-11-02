@@ -28,23 +28,6 @@ function Invoke-Sc([string[]]$ArgsList) {
 }
 
 $binaryPath = '"' + $exe + '"'
-$service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-if ($null -eq $service) {
-    New-Service -Name $ServiceName -DisplayName $DisplayName -Description "PROJEX Enterprise API background service." -BinaryPathName $binaryPath -StartupType Automatic | Out-Null
-}
-else {
-    if ($service.Status -ne "Stopped") {
-        Stop-Service -Name $ServiceName -Force
-        (Get-Service -Name $ServiceName).WaitForStatus("Stopped", [TimeSpan]::FromSeconds(30))
-    }
-    Invoke-Sc @("config", $ServiceName, "binPath=", $binaryPath, "start=", "delayed-auto")
-}
-
-Invoke-Sc @("description", $ServiceName, "PROJEX Enterprise API background service.")
-Invoke-Sc @("config", $ServiceName, "obj=", "NT AUTHORITY\NetworkService", "password=", "")
-Invoke-Sc @("config", $ServiceName, "start=", "delayed-auto")
-Invoke-Sc @("failure", $ServiceName, "reset=", "86400", "actions=", "restart/5000/restart/15000/restart/30000")
-
 $registryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
 $existingValues = @()
 $currentValues = (Get-ItemProperty -LiteralPath $registryPath -Name Environment -ErrorAction SilentlyContinue).Environment
@@ -66,6 +49,22 @@ if ([string]::IsNullOrWhiteSpace($connectionString) -or $connectionString -match
 if ([string]::IsNullOrWhiteSpace($jwtKey) -or [Text.Encoding]::UTF8.GetByteCount($jwtKey) -lt 32) {
     throw "Provide PROJEX_SETUP_JWT_KEY with at least 32 UTF-8 bytes in this process, or retain an existing service key."
 }
+
+$service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+if ($null -eq $service) {
+    New-Service -Name $ServiceName -DisplayName $DisplayName -Description "PROJEX Enterprise API background service." -BinaryPathName $binaryPath -StartupType Automatic | Out-Null
+}
+else {
+    if ($service.Status -ne "Stopped") {
+        Stop-Service -Name $ServiceName -Force
+        (Get-Service -Name $ServiceName).WaitForStatus("Stopped", [TimeSpan]::FromSeconds(30))
+    }
+    Invoke-Sc @("config", $ServiceName, "binPath=", $binaryPath, "start=", "delayed-auto")
+}
+Invoke-Sc @("description", $ServiceName, "PROJEX Enterprise API background service.")
+Invoke-Sc @("config", $ServiceName, "obj=", "NT AUTHORITY\NetworkService", "password=", "")
+Invoke-Sc @("config", $ServiceName, "start=", "delayed-auto")
+Invoke-Sc @("failure", $ServiceName, "reset=", "86400", "actions=", "restart/5000/restart/15000/restart/30000")
 
 $environment = @($existingValues | Where-Object {
     $_ -notmatch '^(ASPNETCORE_URLS|ConnectionStrings__Projex|Authentication__JwtSigningKey)='
