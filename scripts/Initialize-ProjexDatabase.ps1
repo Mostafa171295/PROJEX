@@ -75,8 +75,12 @@ elseif ($SslMode -eq "VerifyFull" -and ([string]::IsNullOrWhiteSpace($RootCertif
 }
 
 $psql = (Get-Command $PsqlPath -ErrorAction Stop).Source
-$adminSecure = Read-Host "PostgreSQL administrator password for '$AdminUser' (input is hidden)" -AsSecureString
-$adminPassword = ConvertFrom-SecureInput $adminSecure
+$adminSecure = $null
+$adminPassword = [Environment]::GetEnvironmentVariable("PROJEX_POSTGRES_ADMIN_PASSWORD")
+if ([string]::IsNullOrEmpty($adminPassword)) {
+    $adminSecure = Read-Host "PostgreSQL administrator password for '$AdminUser' (input is hidden)" -AsSecureString
+    $adminPassword = ConvertFrom-SecureInput $adminSecure
+}
 if ([string]::IsNullOrEmpty($adminPassword)) { throw "The PostgreSQL administrator password cannot be empty." }
 
 $ownerSecure = Read-Host "Choose a strong password for the projex_owner migration account (at least 32 UTF-8 bytes)" -AsSecureString
