@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
@@ -25,24 +24,24 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         AvaloniaXamlLoader.Load(this);
-        FindControl<TextBox>("ServerUrlBox")!.Text = LoadServerAddress();
-        FindControl<Button>("LoginButton")!.Click += async (_, _) => await LoginAsync();
-        FindControl<Button>("LogoutButton")!.Click += async (_, _) => await LogoutAsync();
-        FindControl<Button>("DashboardButton")!.Click += (_, _) => ShowPage("dashboard");
-        FindControl<Button>("ProjectsButton")!.Click += (_, _) => ShowPage("projects");
-        FindControl<Button>("CreateProjectButton")!.Click += async (_, _) => await OpenCreateProjectDialogAsync();
-        FindControl<Button>("ViewAllProjectsButton")!.Click += (_, _) => ShowPage("projects");
-        FindControl<Button>("BackToProjectsButton")!.Click += (_, _) => ShowPage("projects");
-        FindControl<Button>("PlanningButton")!.Click += (_, _) => OpenPlanning();
-        FindControl<Button>("OpenPlanningButton")!.Click += (_, _) => OpenPlanning();
-        FindControl<Button>("OpenReportsButton")!.Click += async (_, _) => await LoadProjectReportAsync();
-        FindControl<Button>("ExportBoqButton")!.Click += async (_, _) => await ExportProjectReportAsync("boq.csv");
-        FindControl<Button>("ExportTransactionsButton")!.Click += async (_, _) => await ExportProjectReportAsync("transactions.csv");
-        FindControl<Button>("CostButton")!.Click += async (_, _) => await ShowCostControlAsync();
-        FindControl<Button>("ReportsButton")!.Click += async (_, _) => await ShowReportsAsync();
-        FindControl<Button>("OrganizationButton")!.Click += (_, _) => ShowUtility("Organization", "Organization and branch administration is available through the secured API. The desktop administration screens are being completed.");
-        FindControl<Button>("SettingsButton")!.Click += (_, _) => ShowUtility("Settings", "Server address is configured on the sign-in screen. Credentials and access tokens are not stored by this desktop client.");
-        FindControl<TextBox>("ProjectSearchBox")!.TextChanged += (_, _) => RenderProjects();
+        this.FindControl<TextBox>("ServerUrlBox")!.Text = LoadServerAddress();
+        this.FindControl<Button>("LoginButton")!.Click += async (_, _) => await LoginAsync();
+        this.FindControl<Button>("LogoutButton")!.Click += async (_, _) => await LogoutAsync();
+        this.FindControl<Button>("DashboardButton")!.Click += (_, _) => ShowPage("dashboard");
+        this.FindControl<Button>("ProjectsButton")!.Click += (_, _) => ShowPage("projects");
+        this.FindControl<Button>("CreateProjectButton")!.Click += async (_, _) => await OpenCreateProjectDialogAsync();
+        this.FindControl<Button>("ViewAllProjectsButton")!.Click += (_, _) => ShowPage("projects");
+        this.FindControl<Button>("BackToProjectsButton")!.Click += (_, _) => ShowPage("projects");
+        this.FindControl<Button>("PlanningButton")!.Click += (_, _) => OpenPlanning();
+        this.FindControl<Button>("OpenPlanningButton")!.Click += (_, _) => OpenPlanning();
+        this.FindControl<Button>("OpenReportsButton")!.Click += async (_, _) => await LoadProjectReportAsync();
+        this.FindControl<Button>("ExportBoqButton")!.Click += async (_, _) => await ExportProjectReportAsync("boq.csv");
+        this.FindControl<Button>("ExportTransactionsButton")!.Click += async (_, _) => await ExportProjectReportAsync("transactions.csv");
+        this.FindControl<Button>("CostButton")!.Click += async (_, _) => await ShowCostControlAsync();
+        this.FindControl<Button>("ReportsButton")!.Click += async (_, _) => await ShowReportsAsync();
+        this.FindControl<Button>("OrganizationButton")!.Click += (_, _) => ShowUtility("Organization", "Organization and branch administration is available through the secured API. The desktop administration screens are being completed.");
+        this.FindControl<Button>("SettingsButton")!.Click += (_, _) => ShowUtility("Settings", "Server address is configured on the sign-in screen. Credentials and access tokens are not stored by this desktop client.");
+        this.FindControl<TextBox>("ProjectSearchBox")!.TextChanged += (_, _) => RenderProjects();
     }
 
     private string LoadServerAddress()
@@ -59,11 +58,11 @@ public partial class MainWindow : Window
     private bool TryGetServerAddress(out Uri address)
     {
         address = null!;
-        if (!Uri.TryCreate(FindControl<TextBox>("ServerUrlBox")!.Text?.Trim(), UriKind.Absolute, out var parsed)
+        if (!Uri.TryCreate(this.FindControl<TextBox>("ServerUrlBox")!.Text?.Trim(), UriKind.Absolute, out var parsed)
             || (parsed.Scheme != Uri.UriSchemeHttps &&
                 !(parsed.Scheme == Uri.UriSchemeHttp && (parsed.IsLoopback || parsed.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)))))
         {
-            FindControl<TextBlock>("LoginStatusText")!.Text = "Use a valid HTTPS address. HTTP is allowed only for localhost.";
+            this.FindControl<TextBlock>("LoginStatusText")!.Text = "Use a valid HTTPS address. HTTP is allowed only for localhost.";
             return false;
         }
         address = new Uri(parsed.ToString().TrimEnd('/') + "/");
@@ -72,12 +71,12 @@ public partial class MainWindow : Window
 
     private async Task LoginAsync()
     {
-        var status = FindControl<TextBlock>("LoginStatusText")!;
-        var button = FindControl<Button>("LoginButton")!;
+        var status = this.FindControl<TextBlock>("LoginStatusText")!;
+        var button = this.FindControl<Button>("LoginButton")!;
         if (!TryGetServerAddress(out var address)) return;
-        var tenant = FindControl<TextBox>("TenantKeyBox")!.Text?.Trim();
-        var email = FindControl<TextBox>("EmailBox")!.Text?.Trim();
-        var password = FindControl<TextBox>("PasswordBox")!.Text;
+        var tenant = this.FindControl<TextBox>("TenantKeyBox")!.Text?.Trim();
+        var email = this.FindControl<TextBox>("EmailBox")!.Text?.Trim();
+        var password = this.FindControl<TextBox>("PasswordBox")!.Text;
         if (string.IsNullOrWhiteSpace(tenant) || string.IsNullOrWhiteSpace(email) || string.IsNullOrEmpty(password))
         {
             status.Text = "Enter your tenant key, email address and password.";
@@ -103,13 +102,13 @@ public partial class MainWindow : Window
             _tenantKey = tenant;
             SaveServerAddress(address);
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-            FindControl<TextBox>("PasswordBox")!.Text = string.Empty;
-            FindControl<Border>("LoginPanel")!.IsVisible = false;
-            FindControl<Grid>("WorkspacePanel")!.IsVisible = true;
-            FindControl<TextBlock>("UserLabel")!.Text = login.Email;
-            FindControl<TextBlock>("ServerAddressLabel")!.Text = address.ToString();
-            FindControl<TextBlock>("ConnectionText")!.Text = "Session active";
-            FindControl<Ellipse>("ConnectionDot")!.Fill = Brush("#22C55E");
+            this.FindControl<TextBox>("PasswordBox")!.Text = string.Empty;
+            this.FindControl<Border>("LoginPanel")!.IsVisible = false;
+            this.FindControl<Grid>("WorkspacePanel")!.IsVisible = true;
+            this.FindControl<TextBlock>("UserLabel")!.Text = login.Email;
+            this.FindControl<TextBlock>("ServerAddressLabel")!.Text = address.ToString();
+            this.FindControl<TextBlock>("ConnectionText")!.Text = "Session active";
+            this.FindControl<Avalonia.Controls.Shapes.Ellipse>("ConnectionDot")!.Fill = Brush("#22C55E");
             await LoadWorkspaceAsync();
         }
         catch (Exception ex)
@@ -128,7 +127,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            FindControl<TextBlock>("LoginStatusText")!.Text = $"Could not save server address: {ex.Message}";
+            this.FindControl<TextBlock>("LoginStatusText")!.Text = $"Could not save server address: {ex.Message}";
         }
     }
 
@@ -138,24 +137,24 @@ public partial class MainWindow : Window
         {
             var summary = await GetJsonWithRefreshAsync<DashboardSummary>(new Uri(_serverAddress!, "api/v1/dashboard/summary"));
             _projects = await GetJsonWithRefreshAsync<List<ProjectItem>>(new Uri(_serverAddress!, "api/v1/projects")) ?? [];
-            FindControl<TextBlock>("TotalProjectsValue")!.Text = (summary?.TotalProjects ?? _projects.Count).ToString();
-            FindControl<TextBlock>("ActiveProjectsValue")!.Text = _projects.Count(p => p.Status.Equals("Active", StringComparison.OrdinalIgnoreCase)).ToString();
-            FindControl<TextBlock>("OnHoldProjectsValue")!.Text = _projects.Count(p => p.Status.Equals("OnHold", StringComparison.OrdinalIgnoreCase)).ToString();
+            this.FindControl<TextBlock>("TotalProjectsValue")!.Text = (summary?.TotalProjects ?? _projects.Count).ToString();
+            this.FindControl<TextBlock>("ActiveProjectsValue")!.Text = _projects.Count(p => p.Status.Equals("Active", StringComparison.OrdinalIgnoreCase)).ToString();
+            this.FindControl<TextBlock>("OnHoldProjectsValue")!.Text = _projects.Count(p => p.Status.Equals("OnHold", StringComparison.OrdinalIgnoreCase)).ToString();
             RenderRecentProjects();
             RenderProjects();
-            FindControl<TextBlock>("DashboardStatusText")!.Text = $"Portfolio data loaded from server at {DateTimeOffset.Now:t}.";
+            this.FindControl<TextBlock>("DashboardStatusText")!.Text = $"Portfolio data loaded from server at {DateTimeOffset.Now:t}.";
         }
         catch (Exception ex)
         {
-            FindControl<TextBlock>("DashboardStatusText")!.Text = $"Could not load portfolio data: {ex.Message}";
-            FindControl<TextBlock>("ConnectionText")!.Text = "API unavailable";
-            FindControl<Ellipse>("ConnectionDot")!.Fill = Brush("#DC6B45");
+            this.FindControl<TextBlock>("DashboardStatusText")!.Text = $"Could not load portfolio data: {ex.Message}";
+            this.FindControl<TextBlock>("ConnectionText")!.Text = "API unavailable";
+            this.FindControl<Avalonia.Controls.Shapes.Ellipse>("ConnectionDot")!.Fill = Brush("#DC6B45");
         }
     }
 
     private void RenderRecentProjects()
     {
-        var panel = FindControl<StackPanel>("RecentProjectsList")!;
+        var panel = this.FindControl<StackPanel>("RecentProjectsList")!;
         panel.Children.Clear();
         if (_projects.Count == 0)
         {
@@ -167,15 +166,15 @@ public partial class MainWindow : Window
 
     private void RenderProjects()
     {
-        var panel = FindControl<StackPanel>("ProjectsList");
+        var panel = this.FindControl<StackPanel>("ProjectsList");
         if (panel is null) return;
         panel.Children.Clear();
-        var filter = FindControl<TextBox>("ProjectSearchBox")?.Text?.Trim();
+        var filter = this.FindControl<TextBox>("ProjectSearchBox")?.Text?.Trim();
         var rows = _projects.Where(p => string.IsNullOrWhiteSpace(filter)
             || p.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)
             || p.Code.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
         foreach (var project in rows) panel.Children.Add(ProjectCard(project));
-        FindControl<TextBlock>("ProjectsStatusText")!.Text = $"{rows.Count} project(s) shown.";
+        this.FindControl<TextBlock>("ProjectsStatusText")!.Text = $"{rows.Count} project(s) shown.";
     }
 
     private Control ProjectCard(ProjectItem project)
@@ -209,12 +208,12 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            FindControl<TextBlock>("ProjectsStatusText")!.Text = $"Could not load companies: {ex.Message}";
+            this.FindControl<TextBlock>("ProjectsStatusText")!.Text = $"Could not load companies: {ex.Message}";
             return;
         }
         if (companies.Count == 0)
         {
-            FindControl<TextBlock>("ProjectsStatusText")!.Text = "No active company is assigned to your account.";
+            this.FindControl<TextBlock>("ProjectsStatusText")!.Text = "No active company is assigned to your account.";
             return;
         }
         companyPicker.ItemsSource = companies.Select(x => $"{x.Code} — {x.Name}").ToList();
@@ -271,7 +270,7 @@ public partial class MainWindow : Window
                 dialog.Close();
                 await LoadWorkspaceAsync();
                 ShowPage("projects");
-                FindControl<TextBlock>("ProjectsStatusText")!.Text = "Project created successfully.";
+                this.FindControl<TextBlock>("ProjectsStatusText")!.Text = "Project created successfully.";
             }
             catch (Exception ex)
             {
@@ -297,8 +296,8 @@ public partial class MainWindow : Window
     private async Task OpenProjectAsync(ProjectItem project)
     {
         _selectedProject = project;
-        FindControl<TextBlock>("DetailProjectName")!.Text = project.Name;
-        FindControl<TextBlock>("DetailProjectMeta")!.Text = $"{project.Code}  ·  {project.Status}  ·  {project.CurrencyCode}  ·  {project.Id}";
+        this.FindControl<TextBlock>("DetailProjectName")!.Text = project.Name;
+        this.FindControl<TextBlock>("DetailProjectMeta")!.Text = $"{project.Code}  ·  {project.Status}  ·  {project.CurrencyCode}  ·  {project.Id}";
         ShowPage("detail");
         await LoadProjectReportAsync();
     }
@@ -306,16 +305,16 @@ public partial class MainWindow : Window
     private async Task LoadProjectReportAsync()
     {
         if (_selectedProject is null || _serverAddress is null) return;
-        var status = FindControl<TextBlock>("DetailReportStatus")!;
+        var status = this.FindControl<TextBlock>("DetailReportStatus")!;
         status.Text = "Loading live project report...";
         try
         {
             var report = await GetJsonWithRefreshAsync<ProjectOverview>(new Uri(_serverAddress, $"api/v1/projects/{_selectedProject.Id}/reports/overview"));
             if (report is null) throw new InvalidDataException("The project report was empty.");
-            FindControl<TextBlock>("DetailActivities")!.Text = report.Schedule.TotalActivities.ToString();
-            FindControl<TextBlock>("DetailProgress")!.Text = $"{report.Schedule.AveragePercentComplete:0.#}%";
-            FindControl<TextBlock>("DetailCritical")!.Text = report.Schedule.CriticalOpen.ToString();
-            FindControl<TextBlock>("DetailScheduleStatus")!.Text =
+            this.FindControl<TextBlock>("DetailActivities")!.Text = report.Schedule.TotalActivities.ToString();
+            this.FindControl<TextBlock>("DetailProgress")!.Text = $"{report.Schedule.AveragePercentComplete:0.#}%";
+            this.FindControl<TextBlock>("DetailCritical")!.Text = report.Schedule.CriticalOpen.ToString();
+            this.FindControl<TextBlock>("DetailScheduleStatus")!.Text =
                 $"Schedule: {report.Schedule.LastCalculatedAt?.ToLocalTime().ToString("g") ?? "Not calculated"}  ·  Delayed activities: {report.Schedule.Delayed}";
             status.Text = report.Cost is null
                 ? "Cost figures are hidden because this account does not have ReadCost permission."
@@ -327,7 +326,7 @@ public partial class MainWindow : Window
     private async Task ExportProjectReportAsync(string reportName)
     {
         if (_selectedProject is null || _serverAddress is null) return;
-        var status = FindControl<TextBlock>("DetailReportStatus")!;
+        var status = this.FindControl<TextBlock>("DetailReportStatus")!;
         status.Text = "Preparing " + reportName + "...";
         try
         {
@@ -356,7 +355,7 @@ public partial class MainWindow : Window
         if (_selectedProject is null || _serverAddress is null || string.IsNullOrWhiteSpace(_accessToken))
         {
             ShowPage("projects");
-            FindControl<TextBlock>("ProjectsStatusText")!.Text = "Open a project first to access its live planning schedule.";
+            this.FindControl<TextBlock>("ProjectsStatusText")!.Text = "Open a project first to access its live planning schedule.";
             return;
         }
         new GanttConnectionWindow(_serverAddress.ToString(), _accessToken, _selectedProject.Id, RefreshAccessTokenForPlanningAsync).Show(this);
@@ -364,17 +363,17 @@ public partial class MainWindow : Window
 
     private void ShowPage(string page)
     {
-        FindControl<StackPanel>("DashboardPage")!.IsVisible = page == "dashboard";
-        FindControl<StackPanel>("ProjectsPage")!.IsVisible = page == "projects";
-        FindControl<StackPanel>("DetailPage")!.IsVisible = page == "detail";
-        FindControl<StackPanel>("UtilityPage")!.IsVisible = page == "utility";
+        this.FindControl<StackPanel>("DashboardPage")!.IsVisible = page == "dashboard";
+        this.FindControl<StackPanel>("ProjectsPage")!.IsVisible = page == "projects";
+        this.FindControl<StackPanel>("DetailPage")!.IsVisible = page == "detail";
+        this.FindControl<StackPanel>("UtilityPage")!.IsVisible = page == "utility";
     }
 
     private void ShowUtility(string title, string description)
     {
-        FindControl<TextBlock>("UtilityTitle")!.Text = title;
-        FindControl<TextBlock>("UtilityDescription")!.Text = description;
-        FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = false;
+        this.FindControl<TextBlock>("UtilityTitle")!.Text = title;
+        this.FindControl<TextBlock>("UtilityDescription")!.Text = description;
+        this.FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = false;
         ShowPage("utility");
     }
 
@@ -383,7 +382,7 @@ public partial class MainWindow : Window
         if (_selectedProject is null)
         {
             ShowPage("projects");
-            FindControl<TextBlock>("ProjectsStatusText")!.Text = "Select a project to view its live report and export data.";
+            this.FindControl<TextBlock>("ProjectsStatusText")!.Text = "Select a project to view its live report and export data.";
             return;
         }
         ShowPage("detail");
@@ -395,36 +394,36 @@ public partial class MainWindow : Window
         if (_selectedProject is null || _serverAddress is null)
         {
             ShowPage("projects");
-            FindControl<TextBlock>("ProjectsStatusText")!.Text = "Open a project first to view its cost position.";
+            this.FindControl<TextBlock>("ProjectsStatusText")!.Text = "Open a project first to view its cost position.";
             return;
         }
-        FindControl<TextBlock>("UtilityTitle")!.Text = "Cost control — " + _selectedProject.Name;
-        FindControl<TextBlock>("UtilityDescription")!.Text = "Live approved budget, actual expenditure and commitments from the project costing module.";
-        FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = true;
+        this.FindControl<TextBlock>("UtilityTitle")!.Text = "Cost control — " + _selectedProject.Name;
+        this.FindControl<TextBlock>("UtilityDescription")!.Text = "Live approved budget, actual expenditure and commitments from the project costing module.";
+        this.FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = true;
         ShowPage("utility");
-        FindControl<TextBlock>("CostBudgetValue")!.Text = "Loading...";
+        this.FindControl<TextBlock>("CostBudgetValue")!.Text = "Loading...";
         try
         {
             var cost = await GetJsonWithRefreshAsync<CostSummary>(
                 new Uri(_serverAddress, "api/v1/projects/" + _selectedProject.Id + "/costing/summary"));
             if (cost is null) throw new InvalidDataException("The costing API returned an empty response.");
             string Format(decimal value) => cost.Currency + " " + value.ToString("N2");
-            FindControl<TextBlock>("CostBudgetValue")!.Text = Format(cost.BudgetAtCompletion);
-            FindControl<TextBlock>("CostActualValue")!.Text = Format(cost.ActualCost);
-            FindControl<TextBlock>("CostCommittedValue")!.Text = Format(cost.CommittedCost);
-            FindControl<TextBlock>("CostVarianceValue")!.Text =
+            this.FindControl<TextBlock>("CostBudgetValue")!.Text = Format(cost.BudgetAtCompletion);
+            this.FindControl<TextBlock>("CostActualValue")!.Text = Format(cost.ActualCost);
+            this.FindControl<TextBlock>("CostCommittedValue")!.Text = Format(cost.CommittedCost);
+            this.FindControl<TextBlock>("CostVarianceValue")!.Text =
                 "Budget less actual: " + Format(cost.BudgetMinusActual) + "   ·   Budget less actual and commitments: " + Format(cost.BudgetMinusActualAndCommitted);
-            FindControl<TextBlock>("CostPendingValue")!.Text = "Transactions awaiting approval: " + cost.TransactionsAwaitingApproval;
+            this.FindControl<TextBlock>("CostPendingValue")!.Text = "Transactions awaiting approval: " + cost.TransactionsAwaitingApproval;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
-            FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = false;
-            FindControl<TextBlock>("UtilityDescription")!.Text = "Your account does not have ReadCost permission for this project. Financial figures are intentionally not shown.";
+            this.FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = false;
+            this.FindControl<TextBlock>("UtilityDescription")!.Text = "Your account does not have ReadCost permission for this project. Financial figures are intentionally not shown.";
         }
         catch (Exception ex)
         {
-            FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = false;
-            FindControl<TextBlock>("UtilityDescription")!.Text = "Could not load cost data: " + ex.Message;
+            this.FindControl<StackPanel>("CostMetricsPanel")!.IsVisible = false;
+            this.FindControl<TextBlock>("UtilityDescription")!.Text = "Could not load cost data: " + ex.Message;
         }
     }
 
@@ -477,9 +476,9 @@ public partial class MainWindow : Window
         }
         _accessToken = null; _refreshToken = null; _tenantKey = null; _serverAddress = null; _selectedProject = null; _projects.Clear();
         _http.DefaultRequestHeaders.Authorization = null;
-        FindControl<Grid>("WorkspacePanel")!.IsVisible = false;
-        FindControl<Border>("LoginPanel")!.IsVisible = true;
-        FindControl<TextBlock>("LoginStatusText")!.Text = "You have signed out.";
+        this.FindControl<Grid>("WorkspacePanel")!.IsVisible = false;
+        this.FindControl<Border>("LoginPanel")!.IsVisible = true;
+        this.FindControl<TextBlock>("LoginStatusText")!.Text = "You have signed out.";
         ShowPage("dashboard");
     }
 
