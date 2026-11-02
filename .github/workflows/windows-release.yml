@@ -176,4 +176,6 @@ jobs:
           name: PROJEX ${{ steps.release_meta.outputs.tag_name }}
           generate_release_notes: true
           prerelease: ${{ contains(steps.release_meta.outputs.tag_name, 'preview') }}
-          files: |\n            artifacts/PROJEX-Windows-win-x64.zip\n            artifacts/PROJEX-Setup-win-x64.exe
+          files: |
+            artifacts/PROJEX-Windows-win-x64.zip
+            artifacts/PROJEX-Setup-win-x64.exe
