@@ -81,6 +81,39 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client-16
           echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - name: Provision least-privilege roles and create migration test database
+        run: |
+          psql --host 127.0.0.1 --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE ROLE projex_owner LOGIN PASSWORD 'ci-owner-password-strong' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB NOREPLICATION" \
+            --command "CREATE ROLE projex_app LOGIN PASSWORD 'ci-app-password-strong' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB NOREPLICATION" \
+            --command "CREATE DATABASE projex_ci_migrations OWNER projex_owner"
+      - name: Apply all numbered application migrations
+        shell: pwsh
+        run: |
+          $env:PGPASSWORD = "ci-owner-password-strong"
+          & ./scripts/migrate.ps1 -DbHost "127.0.0.1" -Port 5432 -Database "projex_ci_migrations" -MigrationsPath "./database/migrations"
+          if ($LASTEXITCODE -ne 0) { throw "Application database migrations failed." }
+      - name: Verify application role grants and tenant row security
+        shell: pwsh
+        run: |
+          $env:PGPASSWORD = "ci-app-password-strong"
+          $checks = @"
+          SELECT
+            has_database_privilege('projex_app', 'projex_ci_migrations', 'CONNECT')
+            AND NOT has_database_privilege('projex_app', 'projex_ci_migrations', 'CREATE')
+            AND has_schema_privilege('projex_app', 'platform', 'USAGE')
+            AND has_table_privilege('projex_app', 'platform.tenants', 'SELECT')
+            AND NOT has_table_privilege('projex_app', 'platform.tenants', 'DELETE')
+            AND NOT has_table_privilege('projex_app', 'identity.permissions', 'INSERT')
+            AND (SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid = 'organization.companies'::regclass);
+          "@
+          $result = psql --host 127.0.0.1 --username projex_app --dbname projex_ci_migrations --tuples-only --no-align --set ON_ERROR_STOP=1 --command $checks
+          if ($LASTEXITCODE -ne 0) { throw "Could not verify application database grants." }
+          if (($result | Out-String).Trim() -ne "t") { throw "Application role grants or tenant row-level security did not match the least-privilege policy." }
+          $rowCount = psql --host 127.0.0.1 --username projex_app --dbname projex_ci_migrations --tuples-only --no-align --set ON_ERROR_STOP=1 --command "SELECT count(*) FROM organization.companies"
+          if ($LASTEXITCODE -ne 0) { throw "Application role could not query its tenant-scoped companies table." }
+          if (($rowCount | Out-String).Trim() -ne "0") { throw "An unscoped application role unexpectedly saw tenant rows." }
+          Write-Host "All application migrations, grants and tenant RLS checks passed."
       - name: Create source and restore databases
         run: |
           pg_dump --version
