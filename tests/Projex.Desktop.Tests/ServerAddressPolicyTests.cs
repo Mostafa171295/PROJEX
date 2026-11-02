@@ -13,6 +13,7 @@ public sealed class ServerAddressPolicyTests
     {
         var accepted = ServerAddressPolicy.TryNormalize(input, out var address, out var error);
         Assert.True(accepted, error);
+        Assert.Empty(error);
         Assert.Equal(expected, address.ToString());
     }
 
@@ -36,6 +37,7 @@ public sealed class ServerAddressPolicyTests
     {
         var accepted = ServerAddressPolicy.TryNormalize("  https://projex.example.com/portal///  ", out var address, out var error);
         Assert.True(accepted, error);
+        Assert.Empty(error);
         Assert.Equal("https://projex.example.com/portal/", address.ToString());
     }
 }
