@@ -101,7 +101,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/package/ServerScripts, artifacts/package/ServerDocs | Out-Null
-          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/ServerScripts
+          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/ServerScripts
+          New-Item -ItemType Directory -Force artifacts/package/ServerDatabase/Migrations | Out-Null
+          Copy-Item database/migrations/*.sql -Destination artifacts/package/ServerDatabase/Migrations
           Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md -Destination artifacts/package/ServerDocs
 
       - name: Add launch helper and package instructions
@@ -121,9 +123,12 @@ jobs:
           Keep all files in the Desktop folder together.
 
           SERVER (optional installer component)
-          The installer can copy the API and server administration scripts.
-          It does not create PostgreSQL, configure secrets, or register the API service automatically.
-          Follow Server\Docs\WINDOWS_HOME_SERVER.md after securely provisioning PostgreSQL and service secrets.
+          The optional server component includes the API, database migrations, and setup/maintenance scripts.
+          Install PostgreSQL 16 separately, then run PowerShell as Administrator:
+          Server\Scripts\Initialize-ProjexDatabase.ps1 -PublishDirectory Server\API
+          Setup creates the database and least-privilege roles, applies migrations, generates the API key,
+          protects service-specific configuration, installs the Windows service, and checks readiness.
+          The setup prompts for the PostgreSQL administrator and migration-owner passwords without echoing them.
           Never expose PostgreSQL port 5432 to the public Internet.
 
           REQUIREMENTS
