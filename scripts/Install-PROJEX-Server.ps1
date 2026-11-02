@@ -71,6 +71,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $publish "Projex.Api.exe") -PathType
 }
 
 $provisioningRoot = Join-Path $env:ProgramData "PROJEX\Provisioning"
+$logRoot = Join-Path $env:ProgramData "PROJEX\Logs"
+$setupLog = Join-Path $logRoot ("server-setup-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
 $installerOptions = Join-Path $provisioningRoot "postgresql16-install.ini"
 $protectedPasswordPath = Join-Path $provisioningRoot "postgresql16-admin.dpapi"
 $previousAdminPassword = $env:PROJEX_POSTGRES_ADMIN_PASSWORD
@@ -79,7 +81,12 @@ $generatedOrRecoveredPassword = $null
 try {
     Add-Type -AssemblyName System.Security
     $null = New-Item -ItemType Directory -Path $provisioningRoot -Force
+    $null = New-Item -ItemType Directory -Path $logRoot -Force
     Set-ProjexProvisioningAcl $provisioningRoot
+    Set-ProjexProvisioningAcl $logRoot
+    Start-Transcript -LiteralPath $setupLog -Force | Out-Null
+    Write-Host "PROJEX server setup started: $(Get-Date -Format o)"
+    Write-Host "A diagnostic log is being saved locally for this setup run."
 
     $service = Get-Service -Name $PostgreSqlServiceName -ErrorAction SilentlyContinue
     if ($null -eq $service) {
@@ -170,8 +177,15 @@ try {
     Write-Host "PostgreSQL 16 is local-only. The API is installed as a Windows service."
     Write-Host "Keep the projex_owner migration password in an approved password vault."
 }
+catch {
+    Write-Host ""
+    Write-Host "PROJEX SERVER SETUP FAILED: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Diagnostic log: $setupLog" -ForegroundColor Yellow
+    throw
+}
 finally {
     $env:PROJEX_POSTGRES_ADMIN_PASSWORD = $previousAdminPassword
     if (Test-Path -LiteralPath $installerOptions) { Remove-Item -LiteralPath $installerOptions -Force }
     $generatedOrRecoveredPassword = $null
+    try { Stop-Transcript | Out-Null } catch { }
 }
