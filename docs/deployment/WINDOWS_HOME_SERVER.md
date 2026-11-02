@@ -62,7 +62,7 @@ To check the service later:
 & "C:\Program Files\PROJEX\Server\Scripts\Test-ProjexApiService.ps1" -HealthUrl "http://127.0.0.1:5080/health/ready"
 ~~~
 
-Running the provisioning script again resets the generated `projex_app` password and JWT key and updates the service configuration; it also reapplies only migrations not already recorded. Keep the `projex_owner` password in the password vault for controlled future migration work.
+Running the provisioning script again reuses the existing service's `projex_app` password and JWT key when present, updates the database target/service configuration, and reapplies only migrations not already recorded. On a first installation, the application password and JWT key are generated. Keep the `projex_owner` password in the password vault for controlled future migration work.
 
 ### Docker Compose preview option
 
