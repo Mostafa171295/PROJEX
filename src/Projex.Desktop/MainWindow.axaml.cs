@@ -40,8 +40,28 @@ public partial class MainWindow : Window
         this.FindControl<Button>("CostButton")!.Click += async (_, _) => await ShowCostControlAsync();
         this.FindControl<Button>("ReportsButton")!.Click += async (_, _) => await ShowReportsAsync();
         this.FindControl<Button>("OrganizationButton")!.Click += (_, _) => ShowUtility("Organization", "Organization and branch administration is available through the secured API. The desktop administration screens are being completed.");
-        this.FindControl<Button>("SettingsButton")!.Click += (_, _) => ShowUtility("Settings", "Server address is configured on the sign-in screen. Credentials and access tokens are not stored by this desktop client.");
+        this.FindControl<Button>("SettingsButton")!.Click += async (_, _) => await OpenConnectionSettingsAsync();
         this.FindControl<TextBox>("ProjectSearchBox")!.TextChanged += (_, _) => RenderProjects();
+    }
+
+    private async Task OpenConnectionSettingsAsync()
+    {
+        var currentAddress = this.FindControl<TextBox>("ServerUrlBox")!.Text ?? LoadServerAddress();
+        var dialog = new ServerConnectionSettingsWindow(currentAddress);
+        var selectedAddress = await dialog.ShowDialog<Uri?>(this);
+        if (selectedAddress is null) return;
+
+        var changed = !string.Equals(
+            _serverAddress?.ToString() ?? currentAddress.TrimEnd('/') + "/",
+            selectedAddress.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+        if (_accessToken is not null && changed)
+            await LogoutAsync();
+
+        this.FindControl<TextBox>("ServerUrlBox")!.Text = selectedAddress.ToString();
+        SaveServerAddress(selectedAddress);
+        this.FindControl<TextBlock>("LoginStatusText")!.Text = "Server address saved. Sign in to connect to this server.";
+        ShowPage("dashboard");
     }
 
     private string LoadServerAddress()
@@ -57,15 +77,11 @@ public partial class MainWindow : Window
 
     private bool TryGetServerAddress(out Uri address)
     {
-        address = null!;
-        if (!Uri.TryCreate(this.FindControl<TextBox>("ServerUrlBox")!.Text?.Trim(), UriKind.Absolute, out var parsed)
-            || (parsed.Scheme != Uri.UriSchemeHttps &&
-                !(parsed.Scheme == Uri.UriSchemeHttp && (parsed.IsLoopback || parsed.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)))))
+        if (!ServerAddressPolicy.TryNormalize(this.FindControl<TextBox>("ServerUrlBox")!.Text, out address, out var error))
         {
-            this.FindControl<TextBlock>("LoginStatusText")!.Text = "Use a valid HTTPS address. HTTP is allowed only for localhost.";
+            this.FindControl<TextBlock>("LoginStatusText")!.Text = error;
             return false;
         }
-        address = new Uri(parsed.ToString().TrimEnd('/') + "/");
         return true;
     }
 
