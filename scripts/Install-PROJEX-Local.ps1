@@ -75,7 +75,7 @@ Write-Host "PostgreSQL client: $($psqlCommand.Source)"
 Write-Host "Database endpoint: $DatabaseHost`:$DatabasePort (loopback only)"
 Write-Host ""
 Write-Host "The next step provisions the PROJEX database, applies migrations, installs the API Windows service, and verifies readiness."
-Write-Host "You will be prompted for the PostgreSQL administrator password and a new migration-owner password. Password input is hidden."
+Write-Host "If PostgreSQL was already installed, its administrator password will be requested. A new migration-owner password is always requested and must be saved in a password vault."
 Write-Host ""
 
 $setupArgs = @{ PublishDirectory = $publish; DbHost = $DatabaseHost; Port = $DatabasePort; PsqlPath = $psqlCommand.Source }
