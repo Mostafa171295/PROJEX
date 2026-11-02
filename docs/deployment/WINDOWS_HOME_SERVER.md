@@ -8,6 +8,12 @@ Windows Service hosting provides background execution and automatic startup; it 
 
 ## Install the API service
 
+If you selected the optional **server payload** in the PROJEX Windows Setup wizard, the API publish directory and administration scripts are installed under `C:\Program Files\PROJEX\Server\API` and `C:\Program Files\PROJEX\Server\Scripts`. After PostgreSQL is provisioned and the required machine-level settings have been securely configured, run this from an elevated PowerShell session:
+
+~~~powershell
+& "C:\Program Files\PROJEX\Server\Scripts\Install-ProjexApiService.ps1" -PublishDirectory "C:\Program Files\PROJEX\Server\API" -ListenUrl "http://127.0.0.1:5080"
+~~~
+
 Publish the API as self-contained win-x64 and place the complete publish directory in a stable location, for example C:\Program Files\PROJEX\API.
 
 Configure these machine-level environment variables before installation. Use an approved secret-management process; never put secret values in source control or command history.
