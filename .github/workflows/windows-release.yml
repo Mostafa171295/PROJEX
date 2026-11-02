@@ -109,9 +109,9 @@ jobs:
           The manager provides API service controls, PostgreSQL service status, API liveness/readiness checks, and maintenance shortcuts.
 
           MULTI-DEVICE SECURITY
-          The current API provisioning profile binds the API to loopback. For remote clients, publish a trusted HTTPS endpoint through an approved TLS reverse proxy or VPN gateway on the server, forwarding to the local API endpoint.
-          Configure certificate renewal and firewall rules before connecting client devices.
-          Never expose PostgreSQL port 5432 to client devices or the public Internet. Do not expose the API's local HTTP port directly.
+          The API starts in loopback-only mode. On the dedicated server, run Server\\Manager\\Projex.ServerManager.exe as Administrator and choose Enable secure LAN access. The wizard requires a trusted PFX certificate, a DNS name that resolves to the server, and the private client subnet. It configures an HTTPS listener and a subnet-scoped Windows Firewall rule.
+          Install the issuing certificate authority on each client device and use the HTTPS address shown by the wizard. Plan certificate renewal before expiry.
+          Never expose PostgreSQL port 5432 or the local API HTTP port to client devices or the public Internet. Choose Disable secure LAN access to return to loopback-only mode.
 
           REQUIREMENTS
           Windows 10/11 x64; Windows 11 recommended. Entry target: 8 GB RAM and SSD; recommended: 16 GB RAM and SSD. No separate .NET runtime installation is required.
