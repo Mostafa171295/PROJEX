@@ -25,7 +25,7 @@ DisableProgramGroupPage=yes
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
-Name: "server"; Description: "Install the API server payload and Windows service administration scripts"; GroupDescription: "Optional components:"; Flags: unchecked
+Name: "server"; Description: "Install local API server payload and database setup tools (recommended)"; GroupDescription: "Server components:"
 
 [Files]
 Source: "..\artifacts\package\Desktop\*"; DestDir: "{app}\Desktop"; Flags: ignoreversion recursesubdirs createallsubdirs
