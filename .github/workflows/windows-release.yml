@@ -130,6 +130,7 @@ jobs:
           Setup creates the database and least-privilege roles, applies migrations, generates the API key,
           protects service-specific configuration, installs the Windows service, and checks readiness.
           The setup prompts for the PostgreSQL administrator and migration-owner passwords without echoing them.
+          The API binds to loopback; use a same-host HTTPS reverse proxy or VPN gateway for remote users.
           Never expose PostgreSQL port 5432 to the public Internet.
 
           REQUIREMENTS
