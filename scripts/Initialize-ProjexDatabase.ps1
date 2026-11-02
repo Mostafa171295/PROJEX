@@ -6,7 +6,7 @@ param(
     [ValidatePattern('^[A-Za-z_][A-Za-z0-9_]{0,62}$')][string]$Database = "projex_enterprise",
     [string]$AdminUser = "postgres",
     [string]$PsqlPath = "psql",
-    [string]$MigrationsPath = (Join-Path $PSScriptRoot "..\database\migrations"),
+    [string]$MigrationsPath,
     [string]$MigrateScriptPath = (Join-Path $PSScriptRoot "migrate.ps1"),
     [string]$InstallServiceScriptPath = (Join-Path $PSScriptRoot "Install-ProjexApiService.ps1"),
     [string]$TestServiceScriptPath = (Join-Path $PSScriptRoot "Test-ProjexApiService.ps1"),
@@ -16,6 +16,16 @@ param(
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+
+if ([string]::IsNullOrWhiteSpace($MigrationsPath)) {
+    $packagedMigrations = Join-Path $PSScriptRoot "..\Database\Migrations"
+    $repositoryMigrations = Join-Path $PSScriptRoot "..\database\migrations"
+    $MigrationsPath = if (Test-Path -LiteralPath $packagedMigrations -PathType Container) {
+        $packagedMigrations
+    } else {
+        $repositoryMigrations
+    }
+}
 
 function New-ProjexSecret([int]$ByteCount = 48) {
     $bytes = New-Object byte[] $ByteCount
