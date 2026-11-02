@@ -40,7 +40,7 @@ jobs:
         run: dotnet test Projex.slnx --configuration Release --no-build --logger "trx;LogFileName=projex-tests.trx"
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: projex-test-results
           path: "**/TestResults/*.trx"
