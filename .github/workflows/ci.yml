@@ -47,6 +47,61 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  postgres-backup-restore-integration:
+    name: PostgreSQL backup and restore integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-postgres-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: ci-postgres-password
+      PROJEX_BACKUP_ENCRYPTION_PASSWORD: ci-only-backup-encryption-password-strong
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client and OpenSSL
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client openssl
+      - name: Create source and restore databases
+        run: |
+          psql --host 127.0.0.1 --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            --command "CREATE DATABASE projex_ci_source" \
+            --command "CREATE DATABASE projex_ci_restore"
+          psql --host 127.0.0.1 --username postgres --dbname projex_ci_source --set ON_ERROR_STOP=1 \
+            --command "CREATE TABLE backup_probe (id integer PRIMARY KEY, payload text NOT NULL)" \
+            --command "INSERT INTO backup_probe (id, payload) VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')"
+      - name: Back up, encrypt, verify, decrypt and restore
+        shell: pwsh
+        run: |
+          $backupDirectory = Join-Path $env:RUNNER_TEMP "projex-backup-integration"
+          & ./scripts/Backup-ProjexDatabase.ps1 -DbHost "127.0.0.1" -Port 5432 -Database "projex_ci_source" -DbUser "postgres" -BackupDirectory $backupDirectory -RetentionDays 2
+          if ($LASTEXITCODE -ne 0) { throw "Backup integration script failed." }
+
+          $backup = Get-ChildItem -LiteralPath $backupDirectory -Filter "*.dump.enc" -File | Select-Object -First 1
+          if ($null -eq $backup) { throw "Encrypted backup archive was not created." }
+          if (-not (Test-Path -LiteralPath ($backup.FullName + ".json"))) { throw "Backup manifest was not created." }
+
+          & ./scripts/Restore-ProjexDatabase.ps1 -BackupFile $backup.FullName -TargetDatabase "projex_ci_restore" -DbHost "127.0.0.1" -Port 5432 -DbUser "postgres" -Confirm:$false
+          if ($LASTEXITCODE -ne 0) { throw "Restore integration script failed." }
+
+          $count = psql --host 127.0.0.1 --username postgres --dbname projex_ci_restore --tuples-only --no-align --command "SELECT count(*) FROM backup_probe"
+          if ($LASTEXITCODE -ne 0) { throw "Could not query restored database." }
+          if (($count | Out-String).Trim() -ne "3") { throw "Restored database row count was not 3." }
+          Write-Host "PostgreSQL backup/restore integration passed: restored 3 rows."
+  
   validate-windows-deployment:
     name: Validate Windows deployment scripts
     runs-on: windows-latest
