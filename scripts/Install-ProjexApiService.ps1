@@ -37,6 +37,7 @@ if($null -eq $s){
     Invoke-Sc @("config",$ServiceName,"binPath=",$bin,"start=","delayed-auto")
 }
 Invoke-Sc @("description",$ServiceName,"PROJEX Enterprise API background service.")
+Invoke-Sc @("config",$ServiceName,"obj=","NT AUTHORITY\NetworkService","password=","")
 Invoke-Sc @("config",$ServiceName,"start=","delayed-auto")
 Invoke-Sc @("failure",$ServiceName,"reset=","86400","actions=","restart/5000/restart/15000/restart/30000")
 # Scope the listener setting to this service; do not alter machine-wide ASP.NET settings.
