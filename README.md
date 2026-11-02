@@ -1,9 +1,11 @@
 # PROJEX ENTERPRISE
 
 > **Current source snapshot:** `0.9.2-preview.1` (development preview).
-> Build, automated tests, PostgreSQL migrations, and production security validation have
-> not yet been independently verified for this archive. Treat this as a development
-> preview, not a production-ready release.
+> GitHub Actions validates the .NET solution, PostgreSQL integration and backup/restore,
+> Windows deployment-script syntax, desktop connection tests, CodeQL, and installer compilation.
+> These automated checks do not certify physical-machine installation, upgrade/uninstall,
+> performance, off-device disaster recovery, or production security. Treat this as a preview,
+> not a production-ready commercial release. See `docs/deployment/PRODUCT_REQUIREMENTS.md`.
 
 Cross-platform enterprise project management platform.
 
@@ -61,7 +63,7 @@ The API now includes ASP.NET Core Identity password hashing, tenant-scoped login
 4. Tenant users sign in at `POST /api/v1/auth/login` using `tenantKey` (the tenant code), `email` and `password`; use the returned token as a bearer token.
 5. RLS is applied by `database/migrations/002_enable_tenant_rls.sql` (see *Database setup* below).
 
-See `docs/security/AUTHENTICATION_AND_TENANCY_0.2.md` for endpoint examples, security boundaries and unfinished controls. EF migrations and PostgreSQL integration tests are not included yet.
+See `docs/security/AUTHENTICATION_AND_TENANCY_0.2.md` for endpoint examples, security boundaries and unfinished controls. Numbered database migrations and PostgreSQL integration tests are included in the current solution and exercised by GitHub Actions.
 
 ## 0.3.0 — Organization & Project APIs
 
@@ -82,7 +84,7 @@ Adds tenant-scoped persistent WBS, activities, activity relationships (FS/SS/FF/
 
 Apply `database/migrations/005_planning_scheduling_060.sql` after the Starter 0.5.0 schema, then run the API. Route details and known limitations are documented in `docs/PROJEX_0.6.0_IMPLEMENTATION.md`.
 
-**Verification warning:** this source package was prepared without a .NET 10 SDK or PostgreSQL server in the build environment. Restore/build/test, migration execution, and PostgreSQL RLS integration tests must be completed before deployment.
+**Current verification boundary:** GitHub Actions runs restore/build/test, applies numbered migrations against PostgreSQL 16, verifies least-privilege grants and tenant RLS, and exercises encrypted backup/restore. These automated checks are not a substitute for clean physical Windows installation, upgrade/uninstall, backup recovery, and security review before commercial deployment.
 
 ## PROJEX 0.6.1 — Calendar-aware scheduling
 
@@ -167,10 +169,10 @@ EF columns are mapped to snake_case in `ProjexDbContext` to match the SQL migrat
 
 
 ## PROJEX 0.8.0-preview.1 — Cost Control & EVM
-Adds `Projex.Cost.Engine`, costing schema (migrations 007–008), `/costing` API, and DB-enforced immutability for approved budgets, cost transactions and baselines. **Not yet built or run** — see `docs/PROJEX_0.8.0_COST_CONTROL_EVM.md` and `docs/GAP_ANALYSIS_0.7.4.md`.
+Adds `Projex.Cost.Engine`, costing schema (migrations 007–008), `/costing` API, and DB-enforced immutability for approved budgets, cost transactions and baselines. The current solution is included in automated build/test validation; see `docs/PROJEX_0.8.0_COST_CONTROL_EVM.md` and `docs/GAP_ANALYSIS_0.7.4.md` for feature-specific limitations.
 
 ## PROJEX 0.9.0-preview.1 — Users & Sessions
-Refresh-token sessions with rotation and reuse detection, logout, immediate revocation, and CompanyAdmin user management (migration 010). **Not yet built or run** — see `docs/PROJEX_0.9.0_USERS_SESSIONS.md`. Existing access tokens are rejected after upgrade; sign in again.
+Refresh-token sessions with rotation and reuse detection, logout, immediate revocation, and CompanyAdmin user management (migration 010). The current solution is included in automated build/test validation; see `docs/PROJEX_0.9.0_USERS_SESSIONS.md` for migration and session behavior. Existing access tokens are rejected after upgrade; sign in again.
 
 ## 0.9.2-preview.1 — Step 1: Identity, Platform, RBAC
-Hardened identity (composite tenant-safe foreign keys, RLS on Identity child tables, tenant-status check on every request, rate limiting, configurable password/lockout policy), a separate platform administration plane (`platform` schema, tenants, subscriptions and seat limits, platform audit) and role-based access control (permission catalog, 8 system roles, custom roles, scoped role assignments). Migrations 011-013. **Not yet built or run** — see `docs/PROJEX_0.9.2_IDENTITY_PLATFORM_RBAC.md`. The old one-shot tenant bootstrap is gone; `organization.tenants` moved to `platform.tenants` and its `key` column is now `code`.
+Hardened identity (composite tenant-safe foreign keys, RLS on Identity child tables, tenant-status check on every request, rate limiting, configurable password/lockout policy), a separate platform administration plane (`platform` schema, tenants, subscriptions and seat limits, platform audit) and role-based access control (permission catalog, 8 system roles, custom roles, scoped role assignments). Migrations 011-013 are included in the current PostgreSQL migration validation. See `docs/PROJEX_0.9.2_IDENTITY_PLATFORM_RBAC.md` for feature-specific limitations. The old one-shot tenant bootstrap is gone; `organization.tenants` moved to `platform.tenants` and its `key` column is now `code`.
