@@ -58,3 +58,20 @@ Migrations, RLS, tenant isolation, authentication and production security still 
 ## Desktop clients
 
 Desktop clients connect to the server's HTTPS/VPN address. They must not start a second API or local database on each employee PC. Remote clients cannot directly start or stop the Windows service on the host.
+
+
+## Health probes
+
+The API exposes three unauthenticated probes intended for local service monitoring and reverse-proxy health checks:
+
+- `GET /health` — backwards-compatible liveness response.
+- `GET /health/live` — confirms the API process is responding; it does not require PostgreSQL.
+- `GET /health/ready` — checks whether the API can connect to PostgreSQL. Returns HTTP 200 when ready and HTTP 503 when the database is unavailable. The response deliberately omits provider exception details and connection information.
+
+After installing or updating the service, run the readiness check from an elevated PowerShell session:
+
+```powershell
+.\scripts\Test-ProjexApiService.ps1 -HealthUrl "http://127.0.0.1:5080/health/ready"
+```
+
+The check verifies both the Windows Service Control Manager state and the API/database readiness. Use `-SkipServiceStatus` only when checking an API hosted outside the Windows Service.
