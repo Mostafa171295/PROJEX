@@ -8,7 +8,7 @@ Windows Service hosting provides background execution and automatic startup; it 
 
 ## Install and update the API service
 
-If you selected the optional **server payload** in the PROJEX Windows Setup wizard, the self-contained API and administration scripts are installed under `C:\Program Files\PROJEX\Server\API` and `C:\Program Files\PROJEX\Server\Scripts`. Install PostgreSQL and run the automated provisioning procedure below for the first installation; it creates the service only after the database and credentials are ready.
+The self-contained API and administration scripts are included in the PROJEX ZIP under `Server\API` and `Server\Scripts`. For a dedicated server, extract the package and run `Server\Manager\Projex.ServerManager.exe` as Administrator. Use **Run server setup** to install PostgreSQL 16 if needed, provision the database, apply migrations, and install the API service.
 
 The service runs as the built-in `NT AUTHORITY\NetworkService` account, uses delayed automatic startup and restart recovery, and reads its connection string and JWT signing key from service-specific environment values. The service registry key is restricted to Local System and local Administrators; these values are not encrypted, so local administrator access must be protected. Do not configure secrets as machine-wide environment variables.
 
