@@ -19,7 +19,7 @@ if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Projex.Api.exe i
 $uri = $null
 if (-not [Uri]::TryCreate($ListenUrl, [UriKind]::Absolute, [ref]$uri)) { throw "ListenUrl must be an absolute URL." }
 if ($uri.Scheme -notin @("http", "https")) { throw "ListenUrl must use HTTP or HTTPS." }
-if ($uri.Scheme -eq "http" -and -not $uri.IsLoopback) { throw "Plain HTTP is allowed only on loopback; use HTTPS otherwise." }
+if (-not $uri.IsLoopback) { throw "The API service must bind to loopback. Terminate remote HTTPS on a reverse proxy or VPN gateway on this server." }
 if ($uri.Host -in @("0.0.0.0", "::", "*", "+")) { throw "Wildcard listeners are not allowed." }
 
 function Invoke-Sc([string[]]$ArgsList) {
