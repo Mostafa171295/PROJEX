@@ -52,6 +52,8 @@ jobs:
     needs: test
     runs-on: windows-latest
     timeout-minutes: 40
+    permissions:
+      contents: write   # needed only to publish the rolling "latest" release
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -177,3 +179,27 @@ jobs:
           path: artifacts/package/Clients
           if-no-files-found: error
           retention-days: 14
+      # Build ONE zip and attach it to a GitHub Release. Release assets are not
+      # re-zipped by GitHub, so this gives a single clean PROJEX-Full-win-x64.zip.
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path artifacts/package/* -DestinationPath PROJEX-Full-win-x64.zip -Force
+          $zip = Get-Item PROJEX-Full-win-x64.zip
+          "{0}  {1:N1} MB" -f $zip.Name, ($zip.Length / 1MB)
+          (Get-FileHash $zip.FullName -Algorithm SHA256).Hash.ToLower() + "  " + $zip.Name | Set-Content -Encoding ascii PROJEX-Full-win-x64.zip.sha256
+      - name: Publish rolling "latest" release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $short = "${{ github.sha }}".Substring(0, 7)
+          # Remove the previous release and its tag so the new one always points at this commit.
+          gh release delete latest --yes --cleanup-tag 2>$null
+          gh release create latest PROJEX-Full-win-x64.zip PROJEX-Full-win-x64.zip.sha256 `
+            --title "PROJEX latest build ($short)" `
+            --notes "Automated build of main at commit ${{ github.sha }}. Development preview, not a certified production release." `
+            --prerelease `
+            --target "${{ github.sha }}"
+          if ($LASTEXITCODE -ne 0) { throw "Creating the GitHub release failed." }
