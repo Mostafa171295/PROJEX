@@ -152,7 +152,12 @@ GRANT USAGE ON SCHEMA public TO projex_app;
     [IO.File]::WriteAllText($tempSql, $sql, [Text.UTF8Encoding]::new($false))
 
     $env:PGPASSWORD = $adminPassword
-    $env:PGSSLMODE = $SslMode.ToLowerInvariant()
+    $env:PGSSLMODE = switch ($SslMode) {
+        "Prefer" { "prefer" }
+        "Require" { "require" }
+        "VerifyCA" { "verify-ca" }
+        "VerifyFull" { "verify-full" }
+    }
     if (-not [string]::IsNullOrWhiteSpace($RootCertificate)) { $env:PGSSLROOTCERT = (Resolve-Path -LiteralPath $RootCertificate).Path }
     Write-Host "Creating or updating the least-privileged PostgreSQL roles and database..."
     & $psql --no-password --host $DbHost --port $Port --username $AdminUser --dbname postgres --set ON_ERROR_STOP=1 --file $tempSql
