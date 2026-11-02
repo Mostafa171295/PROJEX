@@ -16,6 +16,17 @@ $dir = (Resolve-Path -LiteralPath $PublishDirectory -ErrorAction Stop).Path
 $exe = Join-Path $dir "Projex.Api.exe"
 if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Projex.Api.exe is missing from $dir." }
 
+# The API runs as NetworkService; grant read/execute only to its publish tree.
+$publishAcl = Get-Acl -LiteralPath $dir
+$networkService = [Security.Principal.NTAccount]::new("NT AUTHORITY", "NETWORK SERVICE")
+$publishRule = [Security.AccessControl.FileSystemAccessRule]::new(
+    $networkService, [Security.AccessControl.FileSystemRights]::ReadAndExecute,
+    [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [Security.AccessControl.InheritanceFlags]::ObjectInherit,
+    [Security.AccessControl.PropagationFlags]::None,
+    [Security.AccessControl.AccessControlType]::Allow)
+$publishAcl.SetAccessRule($publishRule)
+Set-Acl -LiteralPath $dir -AclObject $publishAcl
+
 $uri = $null
 if (-not [Uri]::TryCreate($ListenUrl, [UriKind]::Absolute, [ref]$uri)) { throw "ListenUrl must be an absolute URL." }
 if ($uri.Scheme -notin @("http", "https")) { throw "ListenUrl must use HTTP or HTTPS." }
