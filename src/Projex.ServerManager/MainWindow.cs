@@ -87,7 +87,7 @@ public sealed class MainWindow : Window
         var tools = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,*"),
-            RowDefinitions = new RowDefinitions("Auto,Auto"),
+            RowDefinitions = new RowDefinitions("Auto,Auto,Auto"),
             ColumnSpacing = 10,
             RowSpacing = 10
         };
@@ -95,6 +95,8 @@ public sealed class MainWindow : Window
         tools.Children.Add(ActionButton("Open deployment guide", OpenDeploymentGuide, 1, 0));
         tools.Children.Add(ActionButton("Open backup folder", OpenBackupFolder, 0, 1));
         tools.Children.Add(ActionButton("Open Windows Services", OpenServices, 1, 1));
+        tools.Children.Add(ActionButton("Enable secure LAN access", LaunchRemoteAccessSetup, 0, 2));
+        tools.Children.Add(ActionButton("Disable secure LAN access", DisableRemoteAccess, 1, 2));
         page.Children.Add(Section("Setup and maintenance", tools));
 
         page.Children.Add(new Border
@@ -305,9 +307,13 @@ public sealed class MainWindow : Window
         _restartButton.IsEnabled = enabled;
     }
 
-    private void LaunchSetup()
+    private void LaunchSetup() => LaunchElevatedScript("Install-PROJEX-Local.ps1");
+    private void LaunchRemoteAccessSetup() => LaunchElevatedScript("Enable-PROJEX-RemoteAccess.ps1");
+    private void DisableRemoteAccess() => LaunchElevatedScript("Disable-PROJEX-RemoteAccess.ps1");
+
+    private void LaunchElevatedScript(string fileName)
     {
-        var script = GetServerPath("Scripts", "Install-PROJEX-Local.ps1");
+        var script = GetServerPath("Scripts", fileName);
         if (!File.Exists(script))
         {
             _status.Text = $"Setup script not found: {script}. Extract the complete PROJEX server package first.";
@@ -323,7 +329,7 @@ public sealed class MainWindow : Window
                 Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\""
             });
         }
-        catch (Exception ex) { _status.Text = $"Could not launch setup: {ex.Message}"; }
+        catch (Exception ex) { _status.Text = $"Could not launch {fileName}: {ex.Message}"; }
     }
 
     private void OpenDeploymentGuide() => OpenPath(GetServerPath("Docs", "WINDOWS_HOME_SERVER.md"));

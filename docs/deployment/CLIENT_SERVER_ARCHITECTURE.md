@@ -22,9 +22,18 @@ The manager currently checks the local API endpoint http://127.0.0.1:5080/, matc
 
 ## Secure client connectivity
 
-The desktop client already accepts remote HTTPS server URLs and rejects remote plain HTTP. The API service's current provisioning script deliberately binds the API to loopback. For a multi-device deployment, publish a trusted HTTPS endpoint on the server using an approved TLS reverse proxy or VPN gateway, forwarding only to the loopback API endpoint.
+The desktop client accepts remote HTTPS server URLs and rejects remote plain HTTP. The default API provisioning profile remains loopback-only. After local server setup, use the Server Control Center's **Enable secure LAN access** action to run Enable-PROJEX-RemoteAccess.ps1.
 
-Before production multi-device rollout, deployment automation must provision and validate the HTTPS endpoint, certificate renewal, firewall rules, server naming/address stability, and remote health checks. Do not change the API listener to a wildcard address or expose port 5080 directly as a substitute for this work.
+The remote-access setup requires:
+1. A stable DNS name for the server that every client device can resolve to the server's private IP address.
+2. A trusted TLS PFX certificate whose DNS name matches that server name and whose issuer is trusted by the server and all client devices.
+3. The private client subnet in CIDR notation (for example 192.168.10.0/24).
+
+The script validates the certificate and private subnet, copies the PFX to ProgramData with restricted ACLs, stores the PFX password only in the protected PROJEX API service environment, adds an HTTPS Kestrel listener on port 5443, and creates a Windows Firewall rule limited to the specified private subnet and Domain/Private profiles. The API keeps its local-only HTTP health endpoint on 127.0.0.1:5080. PostgreSQL remains local and is never opened to client devices.
+
+Configure each desktop client with https://SERVER-DNS-NAME:5443/. Ensure DNS and certificate trust are correctly configured on every client. The firewall rule is deliberately scoped to a private subnet; do not replace it with Any, Public, or Internet-wide access. Use Disable-PROJEX-RemoteAccess.ps1 to return the API to local-only mode.
+
+Certificate issuance/renewal and real-machine client connectivity must still be validated in the target company network before production use.
 
 ## Installation profiles
 

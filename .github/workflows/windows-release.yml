@@ -136,6 +136,14 @@ jobs:
           if ($assets.Count -ne 1 -or $assets[0].Name -ne "PROJEX-Windows-win-x64.zip") {
             throw "The release staging directory must contain exactly one ZIP asset."
           }
+      - name: Move stable latest tag to the validated commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          git tag --force latest $env:GITHUB_SHA
+          git push --force origin refs/tags/latest
+
       - name: Publish or update the single latest release
         uses: softprops/action-gh-release@v3
         with:
