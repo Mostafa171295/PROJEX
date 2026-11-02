@@ -51,6 +51,20 @@ public class ApiSmokeTests : IClassFixture<DatabaseFixture>, IDisposable
     }
 
     [Fact]
+    public async Task Liveness_and_readiness_are_public_and_readiness_checks_postgres()
+    {
+        var client = _factory.CreateClient();
+
+        var live = await client.GetAsync("/health/live");
+        Assert.Equal(HttpStatusCode.OK, live.StatusCode);
+        Assert.Equal("Healthy", (await live.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+
+        var ready = await client.GetAsync("/health/ready");
+        Assert.Equal(HttpStatusCode.OK, ready.StatusCode);
+        Assert.Equal("Ready", (await ready.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+    }
+
+    [Fact]
     public async Task Platform_admin_provisions_tenants_and_the_tenant_signs_in()
     {
         var client = _factory.CreateClient();
