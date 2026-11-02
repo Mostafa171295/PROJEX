@@ -10,6 +10,10 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+# Pin the official EDB PostgreSQL installer and verify it before execution.
+$PostgreSqlInstallerUri = "https://get.enterprisedb.com/postgresql/postgresql-16.15-5-windows-x64.exe"
+$PostgreSqlInstallerSha256 = "4065dbc5ffb52010e7357dfd6a74934878f1c6faf7a75cad1411a22e11b7b929"
+
 function Assert-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
@@ -74,6 +78,8 @@ $provisioningRoot = Join-Path $env:ProgramData "PROJEX\Provisioning"
 $logRoot = Join-Path $env:ProgramData "PROJEX\Logs"
 $setupLog = Join-Path $logRoot ("server-setup-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
 $installerOptions = Join-Path $provisioningRoot "postgresql16-install.ini"
+$installerPath = Join-Path $provisioningRoot "postgresql-16.15-5-windows-x64.exe"
+$installerDebugLog = Join-Path $logRoot ("postgresql-installer-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
 $protectedPasswordPath = Join-Path $provisioningRoot "postgresql16-admin.dpapi"
 $previousAdminPassword = $env:PROJEX_POSTGRES_ADMIN_PASSWORD
 $generatedOrRecoveredPassword = $null
@@ -101,11 +107,6 @@ try {
             throw "Port $DatabasePort is already in use by another process. Stop and identify that service before installing PostgreSQL 16."
         }
 
-        $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
-        if ($null -eq $winget) {
-            throw "Windows Package Manager (winget) was not found. Install or update Microsoft's App Installer, then run server setup again. No database changes were made."
-        }
-
         if (Test-Path -LiteralPath $protectedPasswordPath -PathType Leaf) {
             $generatedOrRecoveredPassword = Unprotect-ProjexSecret $protectedPasswordPath
         }
@@ -126,13 +127,26 @@ try {
         )
         [IO.File]::WriteAllLines($installerOptions, $optionLines, [Text.UTF8Encoding]::new($false))
 
-        Write-Host "Installing PostgreSQL 16 from the verified Windows Package Manager source..."
-        Write-Host "The database superuser password is generated locally and is not displayed."
-        $override = '--mode unattended --optionfile "' + $installerOptions + '" --unattendedmodeui minimal'
-        & $winget.Source install --id PostgreSQL.PostgreSQL.16 --exact --silent --accept-package-agreements --accept-source-agreements --override $override
-        if ($LASTEXITCODE -ne 0) {
-            throw "PostgreSQL 16 installation failed (winget exit code $LASTEXITCODE). The protected recovery credential was retained so setup can be retried safely."
+        if (-not (Test-Path -LiteralPath $installerPath -PathType Leaf)) {
+            Write-Host "Downloading the official PostgreSQL 16.15-5 Windows installer directly from EnterpriseDB..."
+            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $PostgreSqlInstallerUri -OutFile $installerPath -UseBasicParsing
         }
+
+        Write-Host "Verifying the PostgreSQL installer signature hash before execution..."
+        $actualInstallerHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualInstallerHash -ne $PostgreSqlInstallerSha256) {
+            Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
+            throw "The downloaded PostgreSQL installer failed SHA-256 verification. It was deleted and was not executed."
+        }
+
+        Write-Host "Installing verified PostgreSQL 16 with the locally generated database password..."
+        $installerArguments = '--mode unattended --optionfile "' + $installerOptions + '" --unattendedmodeui minimal --debugtrace "' + $installerDebugLog + '"'
+        $installerProcess = Start-Process -FilePath $installerPath -ArgumentList $installerArguments -Wait -PassThru -NoNewWindow
+        if ($installerProcess.ExitCode -ne 0) {
+            throw "The official PostgreSQL installer failed (exit code $($installerProcess.ExitCode)). Installer diagnostics: $installerDebugLog. The protected recovery credential was retained for a safe retry."
+        }
+        Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
     }
     elseif ($service.Status -ne "Running") {
         Write-Host "Starting the existing PostgreSQL 16 service..."
@@ -167,7 +181,7 @@ try {
 
     Write-Host "PostgreSQL 16 is running. PROJEX will now create its database, apply migrations, install the API service, and verify readiness."
     & (Join-Path $PSScriptRoot "Install-PROJEX-Local.ps1") -PublishDirectory $publish -DatabaseHost $DatabaseHost -DatabasePort $DatabasePort -PostgreSqlServiceName $PostgreSqlServiceName
-    if ($LASTEXITCODE -ne 0) { throw "PROJEX database and API provisioning failed. Review the error above and rerun server setup after correcting it." }
+    if ($LASTEXITCODE -ne 0) { throw "PROJEX database and API provisioning failed. Review the error above and rerun setup after correcting it." }
 
     if (Test-Path -LiteralPath $protectedPasswordPath -PathType Leaf) {
         Remove-Item -LiteralPath $protectedPasswordPath -Force
