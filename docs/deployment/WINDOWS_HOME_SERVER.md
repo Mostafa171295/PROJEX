@@ -49,6 +49,45 @@ For updates, stop the service, replace the published files, then start it again.
 To remove it: `sc.exe stop "PROJEX API"` followed by
 `sc.exe delete "PROJEX API"`.
 
+## Windows database setup (operator-run preview procedure)
+
+The repository's Compose file runs PostgreSQL 16 with a persistent named volume and
+binds port 5432 to loopback only. On a Windows host with Docker Desktop in Linux
+container mode:
+
+1. Install Docker Desktop and the PostgreSQL 16 client tools (`psql.exe`).
+2. From the repository root, copy `.env.example` to `.env` and replace all three
+   placeholder passwords with unique strong values. Do not commit or share `.env`.
+3. Start the database with `docker compose up -d` and confirm
+   `docker compose ps` reports PostgreSQL healthy. The role initialization script
+   runs only when the PostgreSQL data volume is first created.
+4. Set `PGPASSWORD` for the current PowerShell process to the
+   `PROJEX_OWNER_PASSWORD` value from `.env`, then run
+   `./scripts/migrate.ps1`. The script applies numbered SQL files in order and
+   records each successful migration in `public.schema_migrations`. Clear the
+   process environment variable immediately afterward.
+5. Configure the API connection string with the `PROJEX_APP_PASSWORD` value,
+   not the owner or superuser password.
+
+Example migration invocation (enter the owner password at the secure prompt):
+
+```powershell
+$secure = Read-Host "PROJEX owner password" -AsSecureString
+$env:PGPASSWORD = [System.Net.NetworkCredential]::new("", $secure).Password
+try {
+    .\scripts\migrate.ps1
+}
+finally {
+    Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+The PowerShell migration runner requires `psql.exe` on PATH (or pass
+`-PsqlPath`), network access to the database, and the `projex_owner` role.
+It does not create the PostgreSQL server, database, or roles. Back up the database
+before applying schema changes. Do not delete the Docker volume to troubleshoot:
+that destroys the database contents.
+
 ## Database and readiness requirements
 
 The PostgreSQL 16 service and the PROJEX database/schema must be installed and
