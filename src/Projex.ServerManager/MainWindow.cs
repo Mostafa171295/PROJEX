@@ -307,7 +307,69 @@ public sealed class MainWindow : Window
         _restartButton.IsEnabled = enabled;
     }
 
-    private void LaunchSetup() => LaunchElevatedScript("Install-PROJEX-Server.ps1");
+    private bool _setupRunning;
+
+    private async void LaunchSetup()
+    {
+        if (_setupRunning) return;
+
+        var script = GetServerPath("Scripts", "Install-PROJEX-Server.ps1");
+        if (!File.Exists(script))
+        {
+            _status.Text = $"Setup script not found: {script}. Extract the complete PROJEX server package first.";
+            return;
+        }
+
+        _setupRunning = true;
+        _status.Text = "Server setup is running with administrator permission. This may take several minutes...";
+        try
+        {
+            var process = Process.Start(new ProcessStartInfo("powershell.exe")
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\""
+            });
+
+            if (process is null)
+                throw new InvalidOperationException("Windows did not start the elevated setup process.");
+
+            await Task.Run(process.WaitForExit);
+            var exitCode = process.ExitCode;
+            process.Dispose();
+
+            if (exitCode == 0)
+            {
+                _status.Text = "Server setup completed successfully. Refreshing service health...";
+                await RefreshStatusAsync();
+            }
+            else
+            {
+                var logRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "PROJEX", "Logs");
+                var latestLog = Directory.Exists(logRoot)
+                    ? Directory.GetFiles(logRoot, "server-setup-*.log").OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault()
+                    : null;
+                _status.Text = latestLog is null
+                    ? $"Server setup failed (exit code {exitCode}). No diagnostic log was found."
+                    : $"Server setup failed (exit code {exitCode}). Opening the diagnostic log: {latestLog}";
+                if (latestLog is not null)
+                    Process.Start(new ProcessStartInfo(latestLog) { UseShellExecute = true });
+            }
+        }
+        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+        {
+            _status.Text = "Server setup was cancelled at the Windows administrator permission prompt.";
+        }
+        catch (Exception ex)
+        {
+            _status.Text = $"Could not complete server setup: {ex.Message}";
+        }
+        finally
+        {
+            _setupRunning = false;
+        }
+    }
+
     private void LaunchRemoteAccessSetup() => LaunchElevatedScript("Enable-PROJEX-RemoteAccess.ps1");
     private void DisableRemoteAccess() => LaunchElevatedScript("Disable-PROJEX-RemoteAccess.ps1");
 
