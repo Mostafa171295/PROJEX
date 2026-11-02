@@ -163,3 +163,13 @@ jobs:
             if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Error }
             Write-Host "PowerShell syntax is valid: $($script.Name)"
           }
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore desktop tests
+        run: dotnet restore tests/Projex.Desktop.Tests/Projex.Desktop.Tests.csproj
+      - name: Build desktop tests on Windows
+        run: dotnet build tests/Projex.Desktop.Tests/Projex.Desktop.Tests.csproj --configuration Release --no-restore
+      - name: Run desktop connection tests on Windows
+        run: dotnet test tests/Projex.Desktop.Tests/Projex.Desktop.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=desktop-connection-tests.trx"
