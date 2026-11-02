@@ -93,18 +93,17 @@ jobs:
           --configuration Release
           --runtime win-x64
           --self-contained true
-          --output artifacts/package/API
+          --output artifacts/package/Server/API
           -p:DebugType=None
           -p:DebugSymbols=false
 
       - name: Stage server administration payload
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force artifacts/package/ServerScripts, artifacts/package/ServerDocs | Out-Null
-          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/ServerScripts
-          New-Item -ItemType Directory -Force artifacts/package/ServerDatabase/Migrations | Out-Null
-          Copy-Item database/migrations/*.sql -Destination artifacts/package/ServerDatabase/Migrations
-          Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md -Destination artifacts/package/ServerDocs
+          New-Item -ItemType Directory -Force artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
+          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/Server/Scripts
+          Copy-Item database/migrations/*.sql -Destination artifacts/package/Server/Database/Migrations
+          Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md -Destination artifacts/package/Server/Docs
 
       - name: Add launch helper and package instructions
         shell: pwsh
@@ -144,7 +143,7 @@ jobs:
           Compress-Archive -Path "artifacts/package/*" -DestinationPath $zip -CompressionLevel Optimal
           if (!(Test-Path $zip)) { throw "ZIP package was not created." }
           if (!(Test-Path "artifacts/package/Desktop/Projex.Desktop.exe")) { throw "Desktop executable is missing." }
-          if (!(Test-Path "artifacts/package/API/Projex.Api.exe")) { throw "API executable is missing." }
+          if (!(Test-Path "artifacts/package/Server/API/Projex.Api.exe")) { throw "API executable is missing." }
 
       - name: Build Inno Setup installer
         shell: pwsh
