@@ -33,7 +33,7 @@ jobs:
         run: dotnet restore Projex.slnx
       - name: Build
         run: dotnet build Projex.slnx --configuration Release --no-restore
-      - name: Test (includes PostgreSQL integration tests)
+      - name: Run .NET tests
         run: dotnet test Projex.slnx --configuration Release --no-build --logger "trx;LogFileName=projex-tests.trx"
       - name: Upload test results
         if: always()
