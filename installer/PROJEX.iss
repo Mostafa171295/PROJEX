@@ -30,9 +30,10 @@ Name: "server"; Description: "Install the API server payload and Windows service
 [Files]
 Source: "..\artifacts\package\Desktop\*"; DestDir: "{app}\Desktop"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\package\README-RUN.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\artifacts\package\API\*"; DestDir: "{app}\Server\API"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
-Source: "..\artifacts\package\ServerScripts\*"; DestDir: "{app}\Server\Scripts"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
-Source: "..\artifacts\package\ServerDocs\*"; DestDir: "{app}\Server\Docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
+Source: "..\artifacts\package\Server\API\*"; DestDir: "{app}\Server\API"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
+Source: "..\artifacts\package\Server\Scripts\*"; DestDir: "{app}\Server\Scripts"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
+Source: "..\artifacts\package\Server\Database\Migrations\*"; DestDir: "{app}\Server\Database\Migrations"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
+Source: "..\artifacts\package\Server\Docs\*"; DestDir: "{app}\Server\Docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 
 [Icons]
 Name: "{group}\PROJEX Enterprise"; Filename: "{app}\Desktop\Projex.Desktop.exe"; WorkingDir: "{app}\Desktop"

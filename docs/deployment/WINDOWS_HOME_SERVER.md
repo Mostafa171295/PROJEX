@@ -6,56 +6,74 @@ This deployment mode is intended for one always-on Windows machine hosting the A
 
 Windows Service hosting provides background execution and automatic startup; it does not make the API safe for public Internet access. Prefer a properly configured VPN for a small private team, or a hardened HTTPS reverse proxy with DNS, a valid TLS certificate, firewall rules, and restricted administration. Never expose PostgreSQL port 5432 publicly.
 
-## Install the API service
+## Install and update the API service
 
-If you selected the optional **server payload** in the PROJEX Windows Setup wizard, the API publish directory and administration scripts are installed under `C:\Program Files\PROJEX\Server\API` and `C:\Program Files\PROJEX\Server\Scripts`. After PostgreSQL is provisioned and the required machine-level settings have been securely configured, run this from an elevated PowerShell session:
+If you selected the optional **server payload** in the PROJEX Windows Setup wizard, the self-contained API and administration scripts are installed under `C:\Program Files\PROJEX\Server\API` and `C:\Program Files\PROJEX\Server\Scripts`. Install PostgreSQL and run the automated provisioning procedure below for the first installation; it creates the service only after the database and credentials are ready.
+
+The service runs as the built-in `NT AUTHORITY\NetworkService` account, uses delayed automatic startup and restart recovery, and reads its connection string and JWT signing key from service-specific environment values. The service registry key is restricted to Local System and local Administrators; these values are not encrypted, so local administrator access must be protected. Do not configure secrets as machine-wide environment variables.
+
+After publishing a new API build to the stable publish directory, run this from an elevated PowerShell session to update the service while retaining its existing service-scoped credentials:
 
 ~~~powershell
 & "C:\Program Files\PROJEX\Server\Scripts\Install-ProjexApiService.ps1" -PublishDirectory "C:\Program Files\PROJEX\Server\API" -ListenUrl "http://127.0.0.1:5080"
 ~~~
 
-Publish the API as self-contained win-x64 and place the complete publish directory in a stable location, for example C:\Program Files\PROJEX\API.
-
-Configure these machine-level environment variables before installation. Use an approved secret-management process; never put secret values in source control or command history.
-
-- ConnectionStrings__Projex: PostgreSQL connection string for the least-privileged projex_app role.
-- Authentication__JwtSigningKey: independently generated random secret of at least 32 UTF-8 bytes.
-- Bootstrap__Key: strong one-time bootstrap secret only while first platform administrator provisioning is needed; remove or rotate afterward.
-
-Open PowerShell as Administrator from the repository root and run:
-
-~~~powershell
-.\scripts\Install-ProjexApiService.ps1 -PublishDirectory "C:\Program Files\PROJEX\API" -ListenUrl "http://127.0.0.1:5080"
-~~~
-
-The installer validates the executable and required machine-level settings without displaying secret values. It creates or updates the PROJEX API service under the built-in NT AUTHORITY\NetworkService account, configures delayed automatic startup and restart recovery, scopes ASPNETCORE_URLS to the service, and starts it. Plain HTTP is accepted only on loopback; non-loopback listeners require HTTPS. Wildcard listeners are rejected.
-
-Check service and API health:
+Check service and database readiness:
 
 ~~~powershell
 Get-Service -Name "PROJEX API"
-.\scripts\Test-ProjexApiService.ps1 -HealthUrl "http://127.0.0.1:5080/health"
+& "C:\Program Files\PROJEX\Server\Scripts\Test-ProjexApiService.ps1" -HealthUrl "http://127.0.0.1:5080/health/ready"
 ~~~
 
-For an update, publish to a staging directory, stop the service, replace the stable API directory contents, then rerun the installer with the stable directory. Keep a verified copy of the previous publish directory for rollback.
+For updates, publish to a staging directory, stop the service, replace the stable API directory contents, then rerun the installer with the stable directory. Keep a verified copy of the previous publish directory for rollback.
 
 Remove only the service (not published files or database data):
 
 ~~~powershell
-.\scripts\Uninstall-ProjexApiService.ps1
+& "C:\Program Files\PROJEX\Server\Scripts\Uninstall-ProjexApiService.ps1"
 ~~~
 
-## Database setup (operator-run preview procedure)
+## Automated database and service setup on Windows
 
-The Compose file runs PostgreSQL 16 with a persistent named volume and binds port 5432 to loopback only. On Windows with Docker Desktop in Linux-container mode:
+The optional server payload includes `Initialize-ProjexDatabase.ps1` and the numbered SQL migrations. Install PostgreSQL 16 Server separately and make sure its Windows service is running. The PostgreSQL client tool `psql.exe` must also be available on PATH. The PROJEX installer does not silently install or reconfigure a database server.
 
-1. Install Docker Desktop and PostgreSQL client tools (psql.exe).
-2. Copy .env.example to .env and replace all three placeholder passwords. Never commit or share .env.
-3. Run docker compose up -d and confirm docker compose ps reports PostgreSQL healthy. Role initialization runs only when the data volume is first created.
-4. Set PGPASSWORD for the current PowerShell process to PROJEX_OWNER_PASSWORD, run .\scripts\migrate.ps1, then clear PGPASSWORD. The runner applies numbered SQL files in order and tracks them in public.schema_migrations.
-5. Configure the API connection string with PROJEX_APP_PASSWORD, not the owner or superuser password.
+Open PowerShell as Administrator and run the setup script from the installed server folder:
 
-The migration runner requires psql.exe on PATH (or -PsqlPath), network access, and the projex_owner role. It does not create the PostgreSQL server, database, or roles. Back up the database before migrations. Do not delete the Docker volume to troubleshoot; that destroys database contents.
+~~~powershell
+& "C:\Program Files\PROJEX\Server\Scripts\Initialize-ProjexDatabase.ps1" -PublishDirectory "C:\Program Files\PROJEX\Server\API"
+~~~
+
+The script:
+
+1. Prompts for the PostgreSQL administrator password without echoing it.
+2. Prompts for a new `projex_owner` migration password (minimum 32 UTF-8 bytes) and confirmation. Save this password in an approved password vault.
+3. Creates or updates the `projex_owner` and `projex_app` roles as non-superusers without `BYPASSRLS`; generates the application password and JWT signing key cryptographically.
+4. Creates the application database if it does not exist, applies the packaged numbered migrations using `projex_owner`, and builds the API connection string for the restricted `projex_app` role.
+5. Installs or updates the `PROJEX API` Windows service, stores the API connection string and JWT key only in that service's registry environment, and restricts that service registry key to Local System and local Administrators.
+6. Starts the service and checks `/health/ready` to confirm PostgreSQL connectivity.
+
+The temporary SQL file containing role credentials is created under `C:\ProgramData\PROJEX\Provisioning` with restricted NTFS permissions and removed at the end. Secrets are not printed or passed as command-line arguments. The service-specific registry values are not encrypted; local Administrators and Local System can access them, so protect administrator access to the server.
+
+For a PostgreSQL server on another machine, use `-SslMode VerifyFull -RootCertificate "C:\path\to\root.crt"`. The setup refuses remote database hosts without full certificate and hostname verification. For a local PostgreSQL instance, the default loopback connection uses `SSL Mode=Prefer`.
+
+To check the service later:
+
+~~~powershell
+& "C:\Program Files\PROJEX\Server\Scripts\Test-ProjexApiService.ps1" -HealthUrl "http://127.0.0.1:5080/health/ready"
+~~~
+
+Running the provisioning script again reuses the existing service's `projex_app` password and JWT key when present, updates the database target/service configuration, and reapplies only migrations not already recorded. On a first installation, the application password and JWT key are generated. Keep the `projex_owner` password in the password vault for controlled future migration work.
+
+### Docker Compose preview option
+
+For a local preview rather than a separately installed PostgreSQL Windows service, the repository's Docker Compose file runs PostgreSQL 16 with a persistent named volume and binds port 5432 to loopback only. On Windows with Docker Desktop in Linux-container mode:
+
+1. Install Docker Desktop and PostgreSQL client tools (`psql.exe`).
+2. Copy `.env.example` to `.env` and replace all three placeholder passwords. Never commit or share `.env`.
+3. Run `docker compose up -d` and confirm `docker compose ps` reports PostgreSQL healthy. Role initialization runs only when the data volume is first created.
+4. Use the `projex_owner` credential to run the migration script if you are not using the automated setup above.
+
+Do not delete the Docker volume to troubleshoot; that destroys database contents. Docker Desktop is a preview/development option and must not be assumed to provide a hardened always-on production database service.
 
 ## Readiness requirements
 
