@@ -101,9 +101,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
-          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/Server/Scripts
+          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Install-PROJEX-Local.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/Server/Scripts
           Copy-Item database/migrations/*.sql -Destination artifacts/package/Server/Database/Migrations
-          Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md -Destination artifacts/package/Server/Docs
+          Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md, docs/deployment/PRODUCT_REQUIREMENTS.md -Destination artifacts/package/Server/Docs
 
       - name: Add launch helper and package instructions
         shell: pwsh
@@ -121,8 +121,8 @@ jobs:
           Double-click Start-PROJEX.bat or Desktop\Projex.Desktop.exe.
           Keep all files in the Desktop folder together.
 
-          SERVER (optional installer component)
-          The optional server component includes the API, database migrations, and setup/maintenance scripts.
+          SERVER (local single-computer setup)
+          The server component includes the API, database migrations, and setup/maintenance scripts. It is selected by default in Setup.
           Install PostgreSQL 16 separately, then open PowerShell as Administrator from the folder containing Server\ and Desktop\:
           .\Server\Scripts\Initialize-ProjexDatabase.ps1 -PublishDirectory .\Server\API
           Setup creates the database and least-privilege roles, applies migrations, generates the API key,
@@ -132,7 +132,7 @@ jobs:
           Never expose PostgreSQL port 5432 to the public Internet.
 
           REQUIREMENTS
-          Windows 10/11 x64. No separate .NET runtime installation is required.
+          Windows 10/11 x64; Windows 11 recommended. Entry target: 8 GB RAM and SSD; recommended: 16 GB RAM and SSD. See Server\\Docs\\PRODUCT_REQUIREMENTS.md. No separate .NET runtime installation is required.
           The desktop client is installed by default; the server payload is optional.
           '@ | Set-Content -Encoding utf8 artifacts/package/README-RUN.txt
 
