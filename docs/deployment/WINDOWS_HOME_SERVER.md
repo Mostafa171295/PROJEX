@@ -82,9 +82,15 @@ Migrations, RLS, tenant isolation, authentication and production security still 
 Desktop clients connect to the server's HTTPS/VPN address. They must not start a second API or local database on each employee PC. Remote clients cannot directly start or stop the Windows service on the host.
 
 
-On each employee PC:
+On each employee PC, extract the PROJEX ZIP and run PowerShell as Administrator:
 
-1. Install the PROJEX desktop client.
+~~~powershell
+.\\Install-PROJEX-Client.ps1
+~~~
+
+This copies only the desktop client to `C:\\Program Files\\PROJEX\\Client` and creates Start menu and desktop shortcuts. It does not install PostgreSQL, the API, or Server Control Center.
+
+1. Launch **PROJEX Enterprise** from the Start menu.
 2. Open **Settings → Connection settings** (or enter the address on the sign-in screen).
 3. Enter the API base address published by the organization, for example `https://projex.company.com/` or the HTTPS/VPN hostname configured by IT.
 4. Select **Test connection**. The client checks `/health/live` and `/health/ready` separately so an API outage can be distinguished from a database-readiness failure.
