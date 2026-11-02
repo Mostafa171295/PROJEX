@@ -118,7 +118,6 @@ try {
             "datadir=$($env:ProgramFiles)\PostgreSQL\16\data"
         )
         [IO.File]::WriteAllLines($installerOptions, $optionLines, [Text.UTF8Encoding]::new($false))
-        Set-ProjexProvisioningAcl $installerOptions
 
         Write-Host "Installing PostgreSQL 16 from the verified Windows Package Manager source..."
         Write-Host "The database superuser password is generated locally and is not displayed."
