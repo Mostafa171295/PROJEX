@@ -5,7 +5,6 @@ param(
     [ValidateRange(1, 65535)][int]$Port = 5432,
     [ValidatePattern('^[A-Za-z_][A-Za-z0-9_]{0,62}$')][string]$Database = "projex_enterprise",
     [string]$AdminUser = "postgres",
-    [string]$ServiceName = "PROJEX API",
     [string]$PsqlPath = "psql",
     [string]$MigrationsPath = (Join-Path $PSScriptRoot "..\database\migrations"),
     [string]$MigrateScriptPath = (Join-Path $PSScriptRoot "migrate.ps1"),
@@ -78,7 +77,7 @@ if ([Text.Encoding]::UTF8.GetByteCount($ownerPassword) -lt 32) { throw "The proj
 if ($ownerPassword -cne $ownerConfirmation) { throw "The projex_owner password confirmation did not match." }
 
 $existingServiceEnvironment = @()
-$serviceRegistryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
+$serviceRegistryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\PROJEX API"
 if (Test-Path -LiteralPath $serviceRegistryPath) {
     $serviceEnvironmentProperty = Get-ItemProperty -LiteralPath $serviceRegistryPath -Name Environment -ErrorAction SilentlyContinue
     if ($null -ne $serviceEnvironmentProperty) { $existingServiceEnvironment = @($serviceEnvironmentProperty.Environment) }
@@ -172,7 +171,7 @@ GRANT USAGE ON SCHEMA public TO projex_app;
     $env:PGPASSWORD = $null
 
     Write-Host "Installing the API as a Windows service and applying service-scoped configuration..."
-    & $InstallServiceScriptPath -PublishDirectory $PublishDirectory -ServiceName $ServiceName -ListenUrl $ListenUrl
+    & $InstallServiceScriptPath -PublishDirectory $PublishDirectory -ListenUrl $ListenUrl
     if ($LASTEXITCODE -ne 0) { throw "Windows API service installation failed." }
 
     Write-Host "Checking API readiness and PostgreSQL connectivity..."
