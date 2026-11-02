@@ -188,7 +188,7 @@ jobs:
             }
           }
 
-          $remainingTags = @(git ls-remote --tags --refs origin | ForEach-Object { ($_ -split '\\s+')[1] -replace '^refs/tags/', '' } | Where-Object { $_ -ne "latest" })
+          $remainingTags = @(git ls-remote --tags --refs origin | ForEach-Object { ($_ -split '\s+')[1] -replace '^refs/tags/', '' } | Where-Object { $_ -ne "latest" })
           foreach ($tag in $remainingTags) {
             git push origin --delete $tag
             if ($LASTEXITCODE -ne 0) { throw "Could not remove superseded version tag '$tag'." }
