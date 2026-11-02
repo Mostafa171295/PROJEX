@@ -76,7 +76,6 @@ Write-Host ""
 
 $setupArgs = @{ PublishDirectory = $publish; DbHost = $DatabaseHost; Port = $DatabasePort; PsqlPath = $psqlCommand.Source }
 & (Join-Path $PSScriptRoot "Initialize-ProjexDatabase.ps1") @setupArgs
-if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "PROJEX database initialization failed with exit code $LASTEXITCODE." }
 
 Write-Host ""
 Write-Host "PROJEX local setup completed. Set the desktop API address to http://127.0.0.1:5080/ if needed."
