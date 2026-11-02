@@ -1,69 +1,222 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Projex.Desktop.MainWindow"
-        Title="PROJEX ENTERPRISE"
-        Width="1180" Height="760"
-        MinWidth="900" MinHeight="600">
-  <Grid RowDefinitions="Auto,*" ColumnDefinitions="240,*">
-    <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#172B4D" Padding="20">
-      <DockPanel>
-        <TextBlock Text="PROJEX ENTERPRISE" Foreground="White"
-                   FontSize="20" FontWeight="Bold" />
-        <TextBlock DockPanel.Dock="Right" Text="PROJECT MANAGEMENT PLATFORM"
-                   Foreground="#B8C7DD" VerticalAlignment="Center" />
-      </DockPanel>
-    </Border>
-    <Border Grid.Row="1" Grid.Column="0" Background="#F3F5F8" Padding="16">
-      <StackPanel Spacing="12">
-        <TextBlock Text="WORKSPACE" FontWeight="Bold" Foreground="#64748B" />
-        <Button HorizontalContentAlignment="Left">Dashboard</Button>
-        <Button HorizontalContentAlignment="Left">Projects</Button>
-        <Button x:Name="PlanningButton" HorizontalContentAlignment="Left">Planning &amp; Scheduling</Button>
-        <Button HorizontalContentAlignment="Left">Cost Control</Button>
-        <Button HorizontalContentAlignment="Left">Reports</Button>
-        <Separator />
-        <TextBlock Text="ADMINISTRATION" FontWeight="Bold" Foreground="#64748B" />
-        <Button HorizontalContentAlignment="Left">Organization</Button>
-        <Button HorizontalContentAlignment="Left">Users &amp; Permissions</Button>
-        <Button HorizontalContentAlignment="Left">Settings</Button>
-      </StackPanel>
-    </Border>
-    <ScrollViewer Grid.Row="1" Grid.Column="1">
-      <StackPanel Margin="28" Spacing="18">
-        <TextBlock Text="Welcome to PROJEX ENTERPRISE" FontSize="28" FontWeight="Bold" />
-        <TextBlock Text="Your integrated project planning and cost control workspace."
-                   FontSize="15" Foreground="#64748B" />
-        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
-          <Border Grid.Column="0" Background="#F3F6FB" CornerRadius="8" Padding="18">
-            <StackPanel Spacing="8">
-              <TextBlock Text="ACTIVE PROJECTS" Foreground="#64748B" />
-              <TextBlock Text="—" FontSize="30" FontWeight="Bold" />
-              <TextBlock Text="Project portfolio summary" Foreground="#64748B" />
-            </StackPanel>
-          </Border>
-          <Border Grid.Column="1" Background="#F3F6FB" CornerRadius="8" Padding="18">
-            <StackPanel Spacing="8">
-              <TextBlock Text="SCHEDULE STATUS" Foreground="#64748B" />
-              <TextBlock Text="—" FontSize="30" FontWeight="Bold" />
-              <TextBlock Text="Schedule performance" Foreground="#64748B" />
-            </StackPanel>
-          </Border>
-          <Border Grid.Column="2" Background="#F3F6FB" CornerRadius="8" Padding="18">
-            <StackPanel Spacing="8">
-              <TextBlock Text="COST PERFORMANCE" Foreground="#64748B" />
-              <TextBlock Text="—" FontSize="30" FontWeight="Bold" />
-              <TextBlock Text="Budget and actual cost" Foreground="#64748B" />
-            </StackPanel>
-          </Border>
-        </Grid>
-        <Border BorderBrush="#DCE3EC" BorderThickness="1" CornerRadius="8" Padding="20">
-          <StackPanel Spacing="8">
-            <TextBlock Text="Foundation build" FontSize="18" FontWeight="Bold" />
-            <TextBlock Text="The initial cross-platform desktop shell and API host are in place. Authentication, tenant provisioning, database migrations, and business modules are the next implementation milestones."
-                       TextWrapping="Wrap" />
+        Title="PROJEX Enterprise"
+        Width="1360" Height="860"
+        MinWidth="1040" MinHeight="680"
+        Background="#F4F6FA">
+  <Grid>
+    <Border x:Name="LoginPanel" Background="#F4F6FA" IsVisible="True">
+      <Grid ColumnDefinitions="1.15*,*" Margin="36">
+        <Border Grid.Column="0" Background="#172B4D" CornerRadius="18" Padding="44">
+          <StackPanel VerticalAlignment="Center" Spacing="22">
+            <TextBlock Text="PROJEX" FontSize="16" FontWeight="Bold" Foreground="#9FB8DA" />
+            <TextBlock Text="Project delivery,
+under control." FontSize="42" FontWeight="Bold" Foreground="White" TextWrapping="Wrap" />
+            <TextBlock Text="One workspace for planning, project controls, cost management and performance reporting." FontSize="17" Foreground="#D1DCEC" TextWrapping="Wrap" />
+            <Border Background="#263F63" CornerRadius="12" Padding="18">
+              <StackPanel Spacing="8">
+                <TextBlock Text="CONNECTED TEAMS" Foreground="#AFC4E0" FontSize="11" FontWeight="Bold" />
+                <TextBlock Text="A shared project environment with role-based access and a central source of truth." Foreground="White" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
           </StackPanel>
         </Border>
-      </StackPanel>
-    </ScrollViewer>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="54,0,28,0" Spacing="14" MaxWidth="420">
+          <TextBlock Text="Welcome back" FontSize="30" FontWeight="Bold" Foreground="#172B4D" />
+          <TextBlock Text="Sign in to your PROJEX workspace" Foreground="#64748B" Margin="0,0,0,14" />
+          <TextBlock Text="SERVER ADDRESS" FontSize="11" FontWeight="Bold" Foreground="#475569" />
+          <TextBox x:Name="ServerUrlBox" Watermark="https://projex.company.com" MinHeight="42" />
+          <TextBlock Text="TENANT KEY" FontSize="11" FontWeight="Bold" Foreground="#475569" />
+          <TextBox x:Name="TenantKeyBox" Watermark="Your organization key" MinHeight="42" />
+          <TextBlock Text="EMAIL ADDRESS" FontSize="11" FontWeight="Bold" Foreground="#475569" />
+          <TextBox x:Name="EmailBox" Watermark="name@company.com" MinHeight="42" />
+          <TextBlock Text="PASSWORD" FontSize="11" FontWeight="Bold" Foreground="#475569" />
+          <TextBox x:Name="PasswordBox" PasswordChar="●" Watermark="Your password" MinHeight="42" />
+          <Button x:Name="LoginButton" Content="Sign in to PROJEX" MinHeight="46" Background="#2563A6" Foreground="White" FontWeight="Bold" />
+          <TextBlock x:Name="LoginStatusText" Text="Your credentials are sent securely to your configured server." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid x:Name="WorkspacePanel" IsVisible="False" RowDefinitions="72,*" ColumnDefinitions="250,*">
+      <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#172B4D" Padding="24,0">
+        <Grid ColumnDefinitions="*,Auto,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <Border Background="#2C4B72" CornerRadius="8" Padding="10,6">
+              <TextBlock Text="P" Foreground="White" FontWeight="Bold" FontSize="18" />
+            </Border>
+            <StackPanel Spacing="1">
+              <TextBlock Text="PROJEX" Foreground="White" FontSize="18" FontWeight="Bold" />
+              <TextBlock Text="ENTERPRISE PROJECT CONTROLS" Foreground="#AFC4E0" FontSize="9" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,24,0">
+            <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#E5A93D" />
+            <TextBlock x:Name="ConnectionText" Text="Connected" Foreground="#D1DCEC" VerticalAlignment="Center" FontSize="12" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <TextBlock x:Name="UserLabel" Text="User" Foreground="White" VerticalAlignment="Center" />
+            <Button x:Name="LogoutButton" Content="Sign out" Background="#294566" Foreground="White" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Grid.Column="0" Background="#FFFFFF" BorderBrush="#E1E7EF" BorderThickness="0,0,1,0" Padding="16">
+        <StackPanel Spacing="8">
+          <TextBlock Text="WORKSPACE" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="8,8,0,8" />
+          <Button x:Name="DashboardButton" Content="▦   Dashboard" HorizontalContentAlignment="Left" MinHeight="42" />
+          <Button x:Name="ProjectsButton" Content="▤   Projects" HorizontalContentAlignment="Left" MinHeight="42" />
+          <Button x:Name="PlanningButton" Content="⌁   Planning &amp; Scheduling" HorizontalContentAlignment="Left" MinHeight="42" />
+          <Button x:Name="CostButton" Content="◫   Cost Control" HorizontalContentAlignment="Left" MinHeight="42" />
+          <Button x:Name="ReportsButton" Content="▥   Reports" HorizontalContentAlignment="Left" MinHeight="42" />
+          <Separator Margin="0,12" />
+          <TextBlock Text="ADMINISTRATION" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="8,4" />
+          <Button x:Name="OrganizationButton" Content="⌂   Organization" HorizontalContentAlignment="Left" MinHeight="42" />
+          <Button x:Name="SettingsButton" Content="⚙   Settings" HorizontalContentAlignment="Left" MinHeight="42" />
+          <Border Background="#F1F5F9" CornerRadius="10" Padding="12" Margin="0,24,0,0">
+            <StackPanel Spacing="5">
+              <TextBlock Text="SERVER WORKSPACE" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
+              <TextBlock x:Name="ServerAddressLabel" Text="—" FontSize="11" Foreground="#334155" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <ScrollViewer Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="30" Spacing="20">
+          <StackPanel x:Name="DashboardPage" Spacing="20">
+            <StackPanel Spacing="5">
+              <TextBlock Text="Portfolio overview" FontSize="28" FontWeight="Bold" Foreground="#172B4D" />
+              <TextBlock Text="A live view of your organization's project portfolio." Foreground="#64748B" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
+              <Border Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="12" Padding="20">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="TOTAL PROJECTS" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                  <TextBlock x:Name="TotalProjectsValue" Text="—" FontSize="32" FontWeight="Bold" Foreground="#172B4D" />
+                  <TextBlock Text="Projects in your workspace" Foreground="#94A3B8" FontSize="11" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="1" Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="12" Padding="20">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="ACTIVE PROJECTS" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                  <TextBlock x:Name="ActiveProjectsValue" Text="—" FontSize="32" FontWeight="Bold" Foreground="#16835D" />
+                  <TextBlock Text="Currently in execution" Foreground="#94A3B8" FontSize="11" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="2" Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="12" Padding="20">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="ON HOLD" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                  <TextBlock x:Name="OnHoldProjectsValue" Text="—" FontSize="32" FontWeight="Bold" Foreground="#C0842D" />
+                  <TextBlock Text="Awaiting action" Foreground="#94A3B8" FontSize="11" />
+                </StackPanel>
+              </Border>
+            </Grid>
+            <Border Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="12" Padding="20">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="Recent projects" FontSize="18" FontWeight="Bold" Foreground="#172B4D" />
+                    <TextBlock Text="Select a project to open its controls." FontSize="12" Foreground="#64748B" />
+                  </StackPanel>
+                  <Button x:Name="ViewAllProjectsButton" Grid.Column="1" Content="View all projects" />
+                </Grid>
+                <StackPanel x:Name="RecentProjectsList" Spacing="8">
+                  <TextBlock Text="Sign in to load your projects." Foreground="#94A3B8" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            <TextBlock x:Name="DashboardStatusText" Foreground="#64748B" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <StackPanel x:Name="ProjectsPage" IsVisible="False" Spacing="16">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="5">
+                <TextBlock Text="Projects" FontSize="28" FontWeight="Bold" Foreground="#172B4D" />
+                <TextBlock Text="Your accessible projects across assigned companies." Foreground="#64748B" />
+              </StackPanel>
+              <Button x:Name="CreateProjectButton" Grid.Column="1" Content="+ New project" Background="#2563A6" Foreground="White" VerticalAlignment="Center" />
+            </Grid>
+            <TextBox x:Name="ProjectSearchBox" Watermark="Search by project code or name..." MinHeight="40" />
+            <StackPanel x:Name="ProjectsList" Spacing="10" />
+            <TextBlock x:Name="ProjectsStatusText" Foreground="#64748B" FontSize="12" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <StackPanel x:Name="DetailPage" IsVisible="False" Spacing="16">
+            <Button x:Name="BackToProjectsButton" Content="← Back to projects" HorizontalAlignment="Left" />
+            <TextBlock x:Name="DetailProjectName" Text="Project overview" FontSize="28" FontWeight="Bold" Foreground="#172B4D" />
+            <TextBlock x:Name="DetailProjectMeta" Foreground="#64748B" />
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
+              <Border Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="10" Padding="16">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="ACTIVITIES" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                  <TextBlock x:Name="DetailActivities" Text="—" FontSize="25" FontWeight="Bold" Foreground="#172B4D" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="1" Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="10" Padding="16">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="AVERAGE PROGRESS" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                  <TextBlock x:Name="DetailProgress" Text="—" FontSize="25" FontWeight="Bold" Foreground="#16835D" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="2" Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="10" Padding="16">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="CRITICAL OPEN" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                  <TextBlock x:Name="DetailCritical" Text="—" FontSize="25" FontWeight="Bold" Foreground="#C24B57" />
+                </StackPanel>
+              </Border>
+            </Grid>
+            <Border Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="12" Padding="20">
+              <StackPanel Spacing="12">
+                <TextBlock Text="Project controls" FontSize="18" FontWeight="Bold" Foreground="#172B4D" />
+                <TextBlock x:Name="DetailScheduleStatus" Foreground="#64748B" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button x:Name="OpenPlanningButton" Content="Open live schedule" Background="#2563A6" Foreground="White" />
+                  <Button x:Name="OpenReportsButton" Content="Refresh overview" />
+                  <Button x:Name="ExportBoqButton" Content="Export BOQ CSV" />
+                  <Button x:Name="ExportTransactionsButton" Content="Export transactions CSV" />
+                </StackPanel>
+                <TextBlock x:Name="DetailReportStatus" Foreground="#64748B" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <StackPanel x:Name="UtilityPage" IsVisible="False" Spacing="14">
+            <TextBlock x:Name="UtilityTitle" Text="Workspace" FontSize="28" FontWeight="Bold" Foreground="#172B4D" />
+            <TextBlock x:Name="UtilityDescription" TextWrapping="Wrap" Foreground="#64748B" />
+            <StackPanel x:Name="CostMetricsPanel" IsVisible="False" Spacing="14">
+              <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
+                <Border Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="10" Padding="18">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="APPROVED BUDGET" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                    <TextBlock x:Name="CostBudgetValue" Text="—" FontSize="24" FontWeight="Bold" Foreground="#172B4D" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="10" Padding="18">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="ACTUAL COST" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                    <TextBlock x:Name="CostActualValue" Text="—" FontSize="24" FontWeight="Bold" Foreground="#2563A6" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="10" Padding="18">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="COMMITTED COST" Foreground="#64748B" FontSize="10" FontWeight="Bold" />
+                    <TextBlock x:Name="CostCommittedValue" Text="—" FontSize="24" FontWeight="Bold" Foreground="#C0842D" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+              <Border Background="White" BorderBrush="#E1E7EF" BorderThickness="1" CornerRadius="10" Padding="18">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="COST POSITION" FontWeight="Bold" Foreground="#172B4D" />
+                  <TextBlock x:Name="CostVarianceValue" Foreground="#334155" />
+                  <TextBlock x:Name="CostPendingValue" Foreground="#64748B" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
   </Grid>
 </Window>

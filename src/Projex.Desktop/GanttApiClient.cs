@@ -9,13 +9,15 @@ namespace Projex.Desktop;
 public sealed class GanttApiClient : IDisposable
 {
     private readonly HttpClient _http;
+    private readonly Func<Task<string>>? _refreshAccessToken;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public GanttApiClient(Uri baseAddress, string bearerToken)
+    public GanttApiClient(Uri baseAddress, string bearerToken, Func<Task<string>>? refreshAccessToken = null)
     {
         if (!baseAddress.IsAbsoluteUri || (baseAddress.Scheme != Uri.UriSchemeHttps && baseAddress.Host != "localhost" && baseAddress.Host != "127.0.0.1"))
             throw new ArgumentException("Use HTTPS for remote API connections. HTTP is permitted only for localhost.", nameof(baseAddress));
         if (string.IsNullOrWhiteSpace(bearerToken)) throw new ArgumentException("A bearer access token is required.", nameof(bearerToken));
+        _refreshAccessToken = refreshAccessToken;
         _http = new HttpClient { BaseAddress = new Uri(baseAddress.ToString().TrimEnd('/') + "/") };
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken.Trim());
         _http.Timeout = TimeSpan.FromSeconds(30);
@@ -26,7 +28,7 @@ public sealed class GanttApiClient : IDisposable
         if (projectId == Guid.Empty) throw new ArgumentException("A valid project ID is required.", nameof(projectId));
         var path = $"api/v1/projects/{projectId}/planning/schedule/gantt";
         if (baselineId.HasValue) path += $"?baselineId={baselineId.Value}";
-        using var response = await _http.GetAsync(path, cancellationToken);
+        using var response = await SendWithRefreshAsync(() => _http.GetAsync(path, cancellationToken));
         if (!response.IsSuccessStatusCode)
         {
             var detail = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -48,7 +50,7 @@ public sealed class GanttApiClient : IDisposable
         if (projectId == Guid.Empty || activityId == Guid.Empty) throw new ArgumentException("Project and activity IDs are required.");
         if (durationMinutes < 0) throw new ArgumentOutOfRangeException(nameof(durationMinutes));
         var path = $"api/v1/projects/{projectId}/planning/schedule/activities/{activityId}";
-        using var response = await _http.PatchAsJsonAsync(path, new { durationMinutes, expectedRowVersion }, cancellationToken);
+        using var response = await SendWithRefreshAsync(() => _http.PatchAsJsonAsync(path, new { durationMinutes, expectedRowVersion }, cancellationToken));
         if (!response.IsSuccessStatusCode)
         {
             var detail = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -65,6 +67,16 @@ public sealed class GanttApiClient : IDisposable
         }
         return await response.Content.ReadFromJsonAsync<GanttDurationUpdateResult>(JsonOptions, cancellationToken)
             ?? throw new InvalidDataException("The duration update returned an empty response.");
+    }
+
+    private async Task<HttpResponseMessage> SendWithRefreshAsync(Func<Task<HttpResponseMessage>> send)
+    {
+        var response = await send();
+        if (response.StatusCode != HttpStatusCode.Unauthorized || _refreshAccessToken is null) return response;
+        response.Dispose();
+        var token = await _refreshAccessToken();
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return await send();
     }
 
     public void Dispose() => _http.Dispose();
