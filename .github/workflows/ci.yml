@@ -19,11 +19,9 @@ jobs:
     name: Build and test (.NET 10)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -32,19 +30,14 @@ jobs:
           cache-dependency-path: |
             **/*.csproj
             global.json
-
       - name: Show SDK
         run: dotnet --info
-
       - name: Restore
         run: dotnet restore Projex.slnx
-
       - name: Build
         run: dotnet build Projex.slnx --configuration Release --no-restore
-
       - name: Test
         run: dotnet test Projex.slnx --configuration Release --no-build --logger "trx;LogFileName=projex-tests.trx"
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -57,23 +50,19 @@ jobs:
   validate-windows-deployment:
     name: Validate Windows deployment scripts
     runs-on: windows-latest
-    timeout-minutes: 5
-
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Parse PowerShell migration script
+      - name: Parse PowerShell deployment scripts
         shell: pwsh
         run: |
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path "scripts/migrate.ps1"),
-            [ref]$tokens,
-            [ref]$errors
-          ) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | Format-List | Out-String | Write-Error
+          $scripts = Get-ChildItem -LiteralPath "scripts" -Filter "*.ps1" -File
+          if ($scripts.Count -eq 0) { throw "No PowerShell deployment scripts were found." }
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Error }
+            Write-Host "PowerShell syntax is valid: $($script.Name)"
           }
-          Write-Host "PowerShell migration script syntax is valid."
