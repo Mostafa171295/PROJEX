@@ -45,6 +45,10 @@ if ($null -eq $psqlCommand) {
 if ($null -eq $psqlCommand) {
     throw "PostgreSQL 16 client tools were not found. Install PostgreSQL 16 locally or pass -PsqlPath with the full path to psql.exe."
 }
+$psqlVersion = (& $psqlCommand.Source --version | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or $psqlVersion -notmatch '\\b16\\.') {
+    throw "PostgreSQL 16 client tools are required. Detected: $psqlVersion"
+}
 
 $service = Get-Service -Name $PostgreSqlServiceName -ErrorAction SilentlyContinue
 if ($null -eq $service) {
