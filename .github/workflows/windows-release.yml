@@ -1,4 +1,4 @@
-name: Windows Release
+name: Windows Package
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-release-latest
+  group: windows-package-latest
   cancel-in-progress: false
 
 jobs:
@@ -44,13 +44,11 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  publish-windows:
-    name: Publish single Windows ZIP
+  package-windows:
+    name: Build single Windows ZIP
     needs: test
     runs-on: windows-latest
     timeout-minutes: 40
-    permissions:
-      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -136,62 +134,12 @@ jobs:
           }
           $assets = @(Get-ChildItem artifacts -File)
           if ($assets.Count -ne 1 -or $assets[0].Name -ne "PROJEX-Windows-win-x64.zip") {
-            throw "The release staging directory must contain exactly one ZIP asset."
+            throw "The package staging directory must contain exactly one ZIP asset."
           }
-      - name: Move stable latest tag to the validated commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          git tag --force latest $env:GITHUB_SHA
-          git push --force origin refs/tags/latest
-
-      - name: Publish or update the single latest release
-        uses: softprops/action-gh-release@v3
+      - name: Upload Windows package artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: latest
-          target_commitish: ${{ github.sha }}
-          name: PROJEX — Latest
-          body: |
-            This release is automatically replaced after successful validation of the latest main branch.
-
-            Download the single Windows x64 package: PROJEX-Windows-win-x64.zip.
-            It contains the desktop client, dedicated server API, Server Control Center, setup scripts, database migrations, and deployment documentation.
-          draft: false
-          prerelease: true
-          overwrite_files: true
-          files: artifacts/PROJEX-Windows-win-x64.zip
-      - name: Enforce the single ZIP release asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          $assetNames = @(gh release view latest --json assets --jq '.assets[].name')
-          foreach ($asset in $assetNames) {
-            if ($asset -ne "PROJEX-Windows-win-x64.zip") {
-              gh release delete-asset latest $asset --yes
-              if ($LASTEXITCODE -ne 0) { throw "Could not remove unexpected release asset '$asset'." }
-            }
-          }
-          if ($assetNames -notcontains "PROJEX-Windows-win-x64.zip") {
-            throw "The latest release does not contain the required PROJEX ZIP."
-          }
-
-      - name: Remove superseded releases and version tags
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          $oldReleaseTags = @(gh release list --limit 1000 --json tagName --jq '.[] | select(.tagName != "latest") | .tagName')
-          foreach ($tag in $oldReleaseTags) {
-            if (![string]::IsNullOrWhiteSpace($tag)) {
-              gh release delete $tag --yes --cleanup-tag
-              if ($LASTEXITCODE -ne 0) { throw "Could not remove superseded release/tag '$tag'." }
-            }
-          }
-
-          $remainingTags = @(git ls-remote --tags --refs origin | ForEach-Object { ($_ -split '\s+')[1] -replace '^refs/tags/', '' } | Where-Object { $_ -ne "latest" })
-          foreach ($tag in $remainingTags) {
-            git push origin --delete $tag
-            if ($LASTEXITCODE -ne 0) { throw "Could not remove superseded version tag '$tag'." }
-          }
+          name: PROJEX-Windows-win-x64
+          path: artifacts/PROJEX-Windows-win-x64.zip
+          if-no-files-found: error
+          retention-days: 14
