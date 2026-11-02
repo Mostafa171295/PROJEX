@@ -104,8 +104,7 @@ jobs:
           In PROJEX connection settings, enter the server HTTPS address. Client devices do not need PostgreSQL or the API service.
 
           DEDICATED SERVER
-          Run Server\\Manager\\Projex.ServerManager.exe as Administrator. Run server setup installs PostgreSQL 16 automatically when it is missing (using Microsoft winget and the verified PostgreSQL package), or reuses an existing PostgreSQL 16 service. An Internet connection and Windows App Installer are required for first-time database installation.
-          Run Server\Manager\Projex.ServerManager.exe as Administrator.
+          Run Server\Manager\Projex.ServerManager.exe as Administrator. Run server setup installs PostgreSQL 16 automatically when it is missing through Microsoft WinGet, or reuses an existing PostgreSQL 16 service. An Internet connection and Windows App Installer are required for first-time database installation.
           Use Run server setup to create the database, apply migrations, and install the PROJEX API Windows Service.
           The manager provides API service controls, PostgreSQL service status, API liveness/readiness checks, and maintenance shortcuts.
 
