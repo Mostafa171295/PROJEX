@@ -52,7 +52,7 @@ if ([string]::IsNullOrWhiteSpace($jwtKey) -or [Text.Encoding]::UTF8.GetByteCount
 
 $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($null -eq $service) {
-    New-Service -Name $ServiceName -DisplayName $DisplayName -Description "PROJEX Enterprise API background service." -BinaryPathName $binaryPath -StartupType Automatic | Out-Null
+    New-Service -Name $ServiceName -DisplayName $DisplayName -BinaryPathName $binaryPath -StartupType Automatic | Out-Null
 }
 else {
     if ($service.Status -ne "Stopped") {
