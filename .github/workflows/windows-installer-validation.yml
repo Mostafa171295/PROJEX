@@ -1,0 +1,42 @@
+name: Windows Installer Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "installer/**"
+      - ".github/workflows/windows-installer-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-installer:
+    name: Compile Inno Setup definition
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+      - name: Prepare isolated compile fixtures
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/package/Desktop, artifacts/package/API, artifacts/package/ServerScripts, artifacts/package/ServerDocs | Out-Null
+          Set-Content -Path artifacts/package/Desktop/Projex.Desktop.exe -Value "compile-fixture"
+          Set-Content -Path artifacts/package/API/Projex.Api.exe -Value "compile-fixture"
+          Set-Content -Path artifacts/package/README-RUN.txt -Value "Installer compile fixture; not a distributable build."
+          Set-Content -Path artifacts/package/ServerScripts/Uninstall-ProjexApiService.ps1 -Value "Write-Output 'fixture'"
+          Set-Content -Path artifacts/package/ServerDocs/WINDOWS_HOME_SERVER.md -Value "# Fixture"
+          Set-Content -Path artifacts/package/ServerDocs/POSTGRES_BACKUP_RESTORE.md -Value "# Fixture"
+      - name: Compile installer definition
+        shell: pwsh
+        run: |
+          $compiler = Join-Path ([Environment]::GetFolderPath("ProgramFilesX86")) "Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $compiler)) { throw "Inno Setup compiler was not installed." }
+          & $compiler /DMyAppVersion=0.0.0-ci installer/PROJEX.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed ($LASTEXITCODE)." }
+          if (!(Test-Path "artifacts/PROJEX-Setup-win-x64.exe")) { throw "Installer output was not created." }

@@ -55,7 +55,7 @@ jobs:
           retention-days: 14
 
   publish-windows:
-    name: Publish portable Windows package
+    name: Publish Windows installer and portable package
     needs: test
     runs-on: windows-latest
     timeout-minutes: 40
@@ -97,6 +97,13 @@ jobs:
           -p:DebugType=None
           -p:DebugSymbols=false
 
+      - name: Stage server administration payload
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/package/ServerScripts, artifacts/package/ServerDocs | Out-Null
+          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/ServerScripts
+          Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md -Destination artifacts/package/ServerDocs
+
       - name: Add launch helper and package instructions
         shell: pwsh
         run: |
@@ -113,15 +120,15 @@ jobs:
           Double-click Start-PROJEX.bat or Desktop\Projex.Desktop.exe.
           Keep all files in the Desktop folder together.
 
-          API
-          Run API\Projex.Api.exe from a terminal when the API is needed.
-          The API requires PostgreSQL and these environment variables:
-          ConnectionStrings__Projex
-          Authentication__JwtSigningKey (at least 32 bytes)
-          It does not include a database server or production secrets.
+          SERVER (optional installer component)
+          The installer can copy the API and server administration scripts.
+          It does not create PostgreSQL, configure secrets, or register the API service automatically.
+          Follow Server\Docs\WINDOWS_HOME_SERVER.md after securely provisioning PostgreSQL and service secrets.
+          Never expose PostgreSQL port 5432 to the public Internet.
 
           REQUIREMENTS
           Windows 10/11 x64. No separate .NET runtime installation is required.
+          The desktop client is installed by default; the server payload is optional.
           '@ | Set-Content -Encoding utf8 artifacts/package/README-RUN.txt
 
       - name: Create ZIP
@@ -132,6 +139,16 @@ jobs:
           if (!(Test-Path $zip)) { throw "ZIP package was not created." }
           if (!(Test-Path "artifacts/package/Desktop/Projex.Desktop.exe")) { throw "Desktop executable is missing." }
           if (!(Test-Path "artifacts/package/API/Projex.Api.exe")) { throw "API executable is missing." }
+
+      - name: Build Inno Setup installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          $compiler = Join-Path ([Environment]::GetFolderPath("ProgramFilesX86")) "Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $compiler)) { throw "Inno Setup compiler was not installed." }
+          & $compiler /DMyAppVersion=0.9.2-preview.1 installer/PROJEX.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed ($LASTEXITCODE)." }
+          if (!(Test-Path "artifacts/PROJEX-Setup-win-x64.exe")) { throw "Installer executable was not created." }
 
       - name: Determine release tag
         id: release_meta
@@ -151,7 +168,7 @@ jobs:
           }
           "tag_name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Publish GitHub Release and attach ZIP
+      - name: Publish GitHub Release with installer and portable ZIP
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.release_meta.outputs.tag_name }}
@@ -159,4 +176,6 @@ jobs:
           name: PROJEX ${{ steps.release_meta.outputs.tag_name }}
           generate_release_notes: true
           prerelease: ${{ contains(steps.release_meta.outputs.tag_name, 'preview') }}
-          files: artifacts/PROJEX-Windows-win-x64.zip
+          files: |
+            artifacts/PROJEX-Windows-win-x64.zip
+            artifacts/PROJEX-Setup-win-x64.exe
