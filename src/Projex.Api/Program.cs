@@ -162,9 +162,10 @@ app.MapGet("/health/ready", async (ProjexDbContext db, CancellationToken ct) =>
     try
     {
         var canConnect = await db.Database.CanConnectAsync(ct);
-        return canConnect
-            ? Results.Ok(new { status = "Ready", timestampUtc = DateTimeOffset.UtcNow })
-            : Results.Json(new { status = "NotReady" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        if (!canConnect)
+            return Results.Json(new { status = "NotReady" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+
+        return Results.Ok(new { status = "Ready", timestampUtc = DateTimeOffset.UtcNow });
     }
     catch (OperationCanceledException) when (ct.IsCancellationRequested)
     {
