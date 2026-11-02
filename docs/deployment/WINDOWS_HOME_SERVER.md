@@ -22,7 +22,7 @@ Open PowerShell as Administrator from the repository root and run:
 .\scripts\Install-ProjexApiService.ps1 -PublishDirectory "C:\Program Files\PROJEX\API" -ListenUrl "http://127.0.0.1:5080"
 ~~~
 
-The installer validates the executable and required machine-level settings without displaying secret values. It creates or updates the PROJEX API service under the built-in NT AUTHORITY\\NetworkService account, configures delayed automatic startup and restart recovery, scopes ASPNETCORE_URLS to the service, and starts it. Plain HTTP is accepted only on loopback; non-loopback listeners require HTTPS. Wildcard listeners are rejected.
+The installer validates the executable and required machine-level settings without displaying secret values. It creates or updates the PROJEX API service under the built-in NT AUTHORITY\NetworkService account, configures delayed automatic startup and restart recovery, scopes ASPNETCORE_URLS to the service, and starts it. Plain HTTP is accepted only on loopback; non-loopback listeners require HTTPS. Wildcard listeners are rejected.
 
 Check service and API health:
 
