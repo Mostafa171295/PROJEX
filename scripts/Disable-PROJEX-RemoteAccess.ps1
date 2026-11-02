@@ -11,7 +11,7 @@ $registryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
 if (-not (Test-Path -LiteralPath $registryPath)) { throw "The PROJEX API Windows Service is not installed." }
 $registry = Get-ItemProperty -LiteralPath $registryPath -Name Environment -ErrorAction SilentlyContinue
 $existing = if ($null -ne $registry -and $null -ne $registry.Environment) { @($registry.Environment) } else { @() }
-$environment = @($existing | Where-Object { $_ -notmatch '^(ASPNETCORE_URLS|Kestrel__Certificates__Default__Path|Kestrel__Certificates__Default__Password)=' })
+$environment = @($existing | Where-Object { $_ -notmatch '^(ASPNETCORE_URLS|AllowedHosts|Kestrel__Certificates__Default__Path|Kestrel__Certificates__Default__Password)=' })
 $environment += "ASPNETCORE_URLS=http://127.0.0.1:5080"
 New-ItemProperty -LiteralPath $registryPath -Name Environment -PropertyType MultiString -Value $environment -Force | Out-Null
 
