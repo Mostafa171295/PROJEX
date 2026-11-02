@@ -127,7 +127,9 @@ jobs:
             "artifacts/package/Desktop/Projex.Desktop.exe",
             "artifacts/package/Server/API/Projex.Api.exe",
             "artifacts/package/Server/Manager/Projex.ServerManager.exe",
-            "artifacts/package/Server/Scripts/Install-PROJEX-Local.ps1",\n            "artifacts/package/Server/Scripts/Install-PROJEX-Server.ps1",\n            "artifacts/package/Install-PROJEX-Client.ps1",
+            "artifacts/package/Server/Scripts/Install-PROJEX-Local.ps1",
+            "artifacts/package/Server/Scripts/Install-PROJEX-Server.ps1",
+            "artifacts/package/Install-PROJEX-Client.ps1",
             "artifacts/package/Server/Docs/CLIENT_SERVER_ARCHITECTURE.md"
           )) {
             if (!(Test-Path $required)) { throw "Required package file is missing: $required" }
