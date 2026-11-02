@@ -43,4 +43,4 @@ Name: "{group}\Server deployment guide"; Filename: "{app}\Server\Docs\WINDOWS_HO
 Filename: "{app}\Desktop\Projex.Desktop.exe"; Description: "Launch PROJEX Enterprise"; Flags: postinstall nowait skipifsilent
 
 [UninstallRun]
-Filename: "{sys}\\WindowsPowerShell\\v1.0\\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\\Server\\Scripts\\Uninstall-ProjexApiService.ps1"" -Confirm:$false"; Flags: runhidden; RunOnceId: "RemoveProjexApiService"; Check: FileExists(ExpandConstant('{app}\\Server\\Scripts\\Uninstall-ProjexApiService.ps1'))
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Server\Scripts\Uninstall-ProjexApiService.ps1"" -Confirm:$false"; Flags: runhidden; RunOnceId: "RemoveProjexApiService"; Check: FileExists(ExpandConstant('{app}\Server\Scripts\Uninstall-ProjexApiService.ps1'))
