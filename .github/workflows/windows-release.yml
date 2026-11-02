@@ -83,7 +83,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
-          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Install-PROJEX-Local.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/Server/Scripts
+          Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Install-PROJEX-Local.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1, scripts/Enable-PROJEX-RemoteAccess.ps1, scripts/Disable-PROJEX-RemoteAccess.ps1 -Destination artifacts/package/Server/Scripts
           Copy-Item database/migrations/*.sql -Destination artifacts/package/Server/Database/Migrations
           Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md, docs/deployment/PRODUCT_REQUIREMENTS.md, docs/deployment/CLIENT_SERVER_ARCHITECTURE.md -Destination artifacts/package/Server/Docs
       - name: Add launch helper and package instructions
