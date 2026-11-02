@@ -17,12 +17,16 @@ internal static class ServerHealthProbe
         Uri serverAddress,
         CancellationToken cancellationToken = default)
     {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(5));
+        var probeToken = timeout.Token;
+
         try
         {
             using var live = await client.GetAsync(
                 new Uri(serverAddress, "health/live"),
                 HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
+                probeToken);
             if (live.StatusCode != HttpStatusCode.OK)
                 return ServerHealthStatus.ApiUnavailable;
         }
@@ -40,7 +44,7 @@ internal static class ServerHealthProbe
             using var ready = await client.GetAsync(
                 new Uri(serverAddress, "health/ready"),
                 HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
+                probeToken);
             return ready.StatusCode == HttpStatusCode.OK
                 ? ServerHealthStatus.Ready
                 : ServerHealthStatus.DatabaseUnavailable;
