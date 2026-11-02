@@ -25,13 +25,15 @@ jobs:
       - name: Prepare isolated compile fixtures
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force artifacts/package/Desktop, artifacts/package/Server/API, artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
+          New-Item -ItemType Directory -Force artifacts/package/Desktop, artifacts/package/Server/API, artifacts/package/Server/Manager, artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
           Set-Content -Path artifacts/package/Desktop/Projex.Desktop.exe -Value "compile-fixture"
           Set-Content -Path artifacts/package/Server/API/Projex.Api.exe -Value "compile-fixture"
+          Set-Content -Path artifacts/package/Server/Manager/Projex.ServerManager.exe -Value "compile-fixture"
           Set-Content -Path artifacts/package/README-RUN.txt -Value "Installer compile fixture; not a distributable build."
           Set-Content -Path artifacts/package/Server/Scripts/Uninstall-ProjexApiService.ps1 -Value "Write-Output 'fixture'"
           Set-Content -Path artifacts/package/Server/Docs/WINDOWS_HOME_SERVER.md -Value "# Fixture"
           Set-Content -Path artifacts/package/Server/Docs/POSTGRES_BACKUP_RESTORE.md -Value "# Fixture"
+          Set-Content -Path artifacts/package/Server/Docs/CLIENT_SERVER_ARCHITECTURE.md -Value "# Fixture"
           Set-Content -Path artifacts/package/Server/Database/Migrations/001_fixture.sql -Value "SELECT 1;"
       - name: Compile installer definition
         shell: pwsh

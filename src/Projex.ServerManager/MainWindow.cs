@@ -3,6 +3,7 @@ using System.Net;
 using System.ServiceProcess;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
