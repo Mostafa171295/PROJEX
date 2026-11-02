@@ -40,7 +40,7 @@ jobs:
         run: dotnet test Projex.slnx --configuration Release --no-build --logger "trx;LogFileName=projex-tests.trx"
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: projex-test-results
           path: "**/TestResults/*.trx"
@@ -164,14 +164,14 @@ jobs:
       # Upload the FOLDERS (not a ready-made zip): GitHub zips an artifact itself,
       # so uploading a zip would give a zip inside a zip.
       - name: Upload full package (server + clients)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PROJEX-Full
           path: artifacts/package
           if-no-files-found: error
           retention-days: 14
       - name: Upload clients-only package (small, for other computers)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PROJEX-Clients
           path: artifacts/package/Clients
