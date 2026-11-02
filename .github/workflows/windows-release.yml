@@ -48,7 +48,7 @@ jobs:
           retention-days: 14
 
   package-windows:
-    name: Build single Windows ZIP
+    name: Build Windows package
     needs: test
     runs-on: windows-latest
     timeout-minutes: 40
@@ -69,7 +69,7 @@ jobs:
         run: >
           dotnet publish src/Projex.Desktop/Projex.Desktop.csproj
           --configuration Release --runtime win-x64 --self-contained true
-          --output artifacts/package/Desktop -p:DebugType=None -p:DebugSymbols=false
+          --output artifacts/package/Clients/Desktop -p:DebugType=None -p:DebugSymbols=false
       - name: Publish API server (self-contained win-x64)
         run: >
           dotnet publish src/Projex.Api/Projex.Api.csproj
@@ -83,9 +83,11 @@ jobs:
       - name: Stage server administration payload
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
+          New-Item -ItemType Directory -Force artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Settings, artifacts/package/Server/Database/Migrations, artifacts/package/Clients | Out-Null
           Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Install-PROJEX-Local.ps1, scripts/Install-PROJEX-Server.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1, scripts/Enable-PROJEX-RemoteAccess.ps1, scripts/Disable-PROJEX-RemoteAccess.ps1 -Destination artifacts/package/Server/Scripts
-          Copy-Item scripts/Install-PROJEX-Client.ps1 -Destination artifacts/package
+          Copy-Item scripts/Install-PROJEX-Client.ps1 -Destination artifacts/package/Clients
+          Copy-Item installer/Clients/Setup-Client.bat -Destination artifacts/package/Clients
+          Set-Content -Encoding utf8 artifacts/package/Server/Settings/README.txt -Value "PROJEX server settings and setup logs are stored in this folder. Do not delete it."
           Copy-Item database/migrations/*.sql -Destination artifacts/package/Server/Database/Migrations
           Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md, docs/deployment/PRODUCT_REQUIREMENTS.md, docs/deployment/CLIENT_SERVER_ARCHITECTURE.md -Destination artifacts/package/Server/Docs
       - name: Add launch helper and package instructions
@@ -97,12 +99,12 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:5080/health/ready' -UseBasicParsing -TimeoutSec 3 | Out-Null; exit 0 } catch { exit 1 }"
           if errorlevel 1 (
             echo PROJEX local API/database is not ready yet.
-            echo Opening Server Control Center. Select Run server setup and wait for Database readiness: Ready.
+            echo Opening Server Control Center. Run step 1 then step 2 and wait for the green status.
             start "" "%~dp0Server\Manager\Projex.ServerManager.exe"
             echo After setup succeeds, run Start-PROJEX.bat again.
             exit /b 1
           )
-          start "" "%~dp0Desktop\Projex.Desktop.exe"
+          start "" "%~dp0Clients\Desktop\Projex.Desktop.exe"
           '@ | Set-Content -Encoding ascii artifacts/package/Start-PROJEX.bat
 
           @'
@@ -113,24 +115,22 @@ jobs:
           @'
           PROJEX ENTERPRISE - Windows x64 package
 
+          FOLDERS
+          Server\   everything for the server computer (Manager, API, Settings, Database, Docs).
+          Clients\  everything a client computer needs (Desktop program + Setup-Client.bat).
+
           SINGLE COMPUTER - FIRST RUN
           1. Double-click Start-PROJEX-Server-Setup.bat and approve the Windows administrator prompt.
-          2. In Server Control Center, select Run server setup. This installs PostgreSQL 16 if missing, creates the PROJEX database, applies migrations, installs/starts the API Windows Service, and checks database readiness.
-          3. If PostgreSQL 16 is missing, an Internet connection and Microsoft's App Installer (WinGet) are required. If PostgreSQL 16 already exists, setup asks for its administrator password.
-          4. Choose and confirm the projex_owner migration password and save it in a password manager.
-          5. When Database readiness shows Ready, double-click Start-PROJEX.bat to open Desktop.
-          Start-PROJEX.bat checks the local API/database readiness first. If they are not ready, it opens Server Control Center and does not launch Desktop. Opening Projex.Desktop.exe directly does not install or start the backend.
+          2. Open "Database and setup" in Server Control Center. Press step 1 to download and install PostgreSQL 16 automatically (needs Internet and Microsoft's App Installer / WinGet). If PostgreSQL 16 already exists, step 1 is skipped.
+          3. Press step 2 to create the PROJEX database, apply migrations and start the PROJEX API Windows service. Passwords are generated automatically and stored encrypted by Windows.
+          4. When the Status page shows green, double-click Start-PROJEX.bat to open the Desktop program.
+          Start-PROJEX.bat checks the local API/database first. If they are not ready it opens Server Control Center instead. Settings and setup logs are stored in Server\Settings.
 
-          CLIENT
-          Run PowerShell as Administrator and execute .\Install-PROJEX-Client.ps1 to install only the desktop client and create shortcuts.
-          In PROJEX connection settings, enter the server HTTPS address. Client devices do not need PostgreSQL or the API service.
-
-          DEDICATED SERVER
-          On the host PC, double-click Start-PROJEX-Server-Setup.bat and use Run server setup. The setup installs PostgreSQL 16 automatically when it is missing through Microsoft WinGet, or reuses an existing PostgreSQL 16 service.
-          The manager provides API service controls, PostgreSQL service status, API liveness/readiness checks, and maintenance shortcuts.
+          CLIENT COMPUTERS
+          Copy the complete Clients folder to the client computer, right-click Setup-Client.bat and choose Run as administrator. The server address is filled in automatically when the server administrator saved it in the Clients page. Client computers do not need PostgreSQL or the API service.
 
           MULTI-DEVICE SECURITY
-          The API starts in loopback-only mode. On the dedicated server, run Server\Manager\Projex.ServerManager.exe and choose Enable secure LAN access. The wizard requires a trusted PFX certificate, a DNS name that resolves to the server, and the private client subnet. It configures an HTTPS listener and a subnet-scoped Windows Firewall rule.
+          The API starts in loopback-only mode. On the dedicated server, open Start-PROJEX-Server-Setup.bat, go to the Clients page and choose Enable secure access. The wizard requires a trusted PFX certificate, a DNS name that resolves to the server, and the private client subnet. It configures an HTTPS listener and a subnet-scoped Windows Firewall rule.
           Install the issuing certificate authority on each client device and use the HTTPS address shown by the wizard. Plan certificate renewal before expiry.
           Never expose PostgreSQL port 5432 or the local API HTTP port to client devices or the public Internet. Choose Disable secure LAN access to return to loopback-only mode.
 
@@ -138,22 +138,21 @@ jobs:
           Windows 10/11 x64; Windows 11 recommended. Entry target: 8 GB RAM and SSD; recommended: 16 GB RAM and SSD. No separate .NET runtime installation is required.
           See Server\Docs\CLIENT_SERVER_ARCHITECTURE.md and PRODUCT_REQUIREMENTS.md.
           '@ | Set-Content -Encoding utf8 artifacts/package/README-RUN.txt
-      - name: Create and validate the single ZIP
+      - name: Validate the package
         shell: pwsh
         run: |
-          $zip = "artifacts/PROJEX-Windows-win-x64.zip"
-          Compress-Archive -Path "artifacts/package/*" -DestinationPath $zip -CompressionLevel Optimal
-          if (!(Test-Path $zip)) { throw "ZIP package was not created." }
           foreach ($required in @(
-            "artifacts/package/Desktop/Projex.Desktop.exe",
+            "artifacts/package/Clients/Desktop/Projex.Desktop.exe",
+            "artifacts/package/Clients/Setup-Client.bat",
+            "artifacts/package/Clients/Install-PROJEX-Client.ps1",
             "artifacts/package/Server/API/Projex.Api.exe",
             "artifacts/package/Server/Manager/Projex.ServerManager.exe",
+            "artifacts/package/Server/Settings/README.txt",
             "artifacts/package/Server/Scripts/Install-PROJEX-Local.ps1",
             "artifacts/package/Server/Scripts/Install-PROJEX-Server.ps1",
             "artifacts/package/Start-PROJEX.bat",
             "artifacts/package/Start-PROJEX-Server-Setup.bat",
             "artifacts/package/README-RUN.txt",
-            "artifacts/package/Install-PROJEX-Client.ps1",
             "artifacts/package/Server/Docs/CLIENT_SERVER_ARCHITECTURE.md"
           )) {
             if (!(Test-Path $required)) { throw "Required package file is missing: $required" }
@@ -162,14 +161,19 @@ jobs:
           if ($desktopLauncher -notmatch "/health/ready" -or $desktopLauncher -notmatch "Start-PROJEX-Server-Setup.bat|Projex.ServerManager.exe") {
             throw "Start-PROJEX.bat must check API/database readiness and direct first-run users to Server Control Center."
           }
-          $assets = @(Get-ChildItem artifacts -File)
-          if ($assets.Count -ne 1 -or $assets[0].Name -ne "PROJEX-Windows-win-x64.zip") {
-            throw "The package staging directory must contain exactly one ZIP asset."
-          }
-      - name: Upload Windows package artifact
+      # Upload the FOLDERS (not a ready-made zip): GitHub zips an artifact itself,
+      # so uploading a zip would give a zip inside a zip.
+      - name: Upload full package (server + clients)
         uses: actions/upload-artifact@v4
         with:
-          name: PROJEX-Windows-win-x64
-          path: artifacts/PROJEX-Windows-win-x64.zip
+          name: PROJEX-Full
+          path: artifacts/package
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload clients-only package (small, for other computers)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROJEX-Clients
+          path: artifacts/package/Clients
           if-no-files-found: error
           retention-days: 14

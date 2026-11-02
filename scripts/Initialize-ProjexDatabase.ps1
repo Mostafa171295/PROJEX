@@ -12,7 +12,9 @@ param(
     [string]$TestServiceScriptPath = (Join-Path $PSScriptRoot "Test-ProjexApiService.ps1"),
     [string]$ListenUrl = "http://127.0.0.1:5080",
     [ValidateSet("Prefer", "Require", "VerifyCA", "VerifyFull")][string]$SslMode = "Prefer",
-    [string]$RootCertificate
+    [string]$RootCertificate,
+    [switch]$AutoOwnerPassword,
+    [switch]$NonInteractive
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -78,15 +80,25 @@ $psql = (Get-Command $PsqlPath -ErrorAction Stop).Source
 $adminSecure = $null
 $adminPassword = [Environment]::GetEnvironmentVariable("PROJEX_POSTGRES_ADMIN_PASSWORD")
 if ([string]::IsNullOrEmpty($adminPassword)) {
+    if ($NonInteractive) { throw "The PostgreSQL administrator password (user postgres) is required. Type it in the Database page and run step 2 again." }
     $adminSecure = Read-Host "PostgreSQL administrator password for '$AdminUser' (input is hidden)" -AsSecureString
     $adminPassword = ConvertFrom-SecureInput $adminSecure
 }
 if ([string]::IsNullOrEmpty($adminPassword)) { throw "The PostgreSQL administrator password cannot be empty." }
 
-$ownerSecure = Read-Host "Choose a strong password for the projex_owner migration account (at least 32 UTF-8 bytes)" -AsSecureString
-$ownerPassword = ConvertFrom-SecureInput $ownerSecure
-$ownerConfirmSecure = Read-Host "Confirm the projex_owner password" -AsSecureString
-$ownerConfirmation = ConvertFrom-SecureInput $ownerConfirmSecure
+$ownerSecure = $null
+$ownerConfirmSecure = $null
+if ($AutoOwnerPassword) {
+    # Generated locally; a Windows-protected (DPAPI) copy is saved below for recovery.
+    $ownerPassword = New-ProjexSecret 48
+    $ownerConfirmation = $ownerPassword
+}
+else {
+    $ownerSecure = Read-Host "Choose a strong password for the projex_owner migration account (at least 32 UTF-8 bytes)" -AsSecureString
+    $ownerPassword = ConvertFrom-SecureInput $ownerSecure
+    $ownerConfirmSecure = Read-Host "Confirm the projex_owner password" -AsSecureString
+    $ownerConfirmation = ConvertFrom-SecureInput $ownerConfirmSecure
+}
 if ([Text.Encoding]::UTF8.GetByteCount($ownerPassword) -lt 32) { throw "The projex_owner password must be at least 32 UTF-8 bytes." }
 if ($ownerPassword -cne $ownerConfirmation) { throw "The projex_owner password confirmation did not match." }
 
@@ -125,6 +137,16 @@ try {
     $currentSid = $identity.User.Value
     & icacls.exe $tempRoot /inheritance:r /grant:r "*$($currentSid):(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" /T /C | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not restrict permissions on the temporary provisioning directory." }
+
+    if ($AutoOwnerPassword) {
+        Add-Type -AssemblyName System.Security
+        $ownerBytes = [Text.Encoding]::UTF8.GetBytes($ownerPassword)
+        $ownerProtected = [Security.Cryptography.ProtectedData]::Protect(
+            $ownerBytes, $null, [Security.Cryptography.DataProtectionScope]::LocalMachine)
+        [IO.File]::WriteAllBytes((Join-Path $tempRoot "projex-owner.dpapi"), $ownerProtected)
+        [Array]::Clear($ownerBytes, 0, $ownerBytes.Length)
+        [Array]::Clear($ownerProtected, 0, $ownerProtected.Length)
+    }
 
     $ownerSql = ConvertTo-SqlLiteral $ownerPassword
     $appSql = ConvertTo-SqlLiteral $appPassword

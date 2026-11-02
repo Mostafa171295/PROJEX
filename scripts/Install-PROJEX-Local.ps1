@@ -5,7 +5,9 @@ param(
     [string]$DatabaseHost = "127.0.0.1",
     [ValidateRange(1, 65535)][int]$DatabasePort = 5432,
     [string]$PostgreSqlServiceName = "postgresql-x64-16",
-    [string]$PsqlPath = "psql"
+    [string]$PsqlPath = "psql",
+    [switch]$AutoOwnerPassword,
+    [switch]$NonInteractive
 )
 
 $ErrorActionPreference = "Stop"
@@ -79,6 +81,8 @@ Write-Host "If PostgreSQL was already installed, its administrator password will
 Write-Host ""
 
 $setupArgs = @{ PublishDirectory = $publish; DbHost = $DatabaseHost; Port = $DatabasePort; PsqlPath = $psqlCommand.Source }
+if ($AutoOwnerPassword) { $setupArgs.AutoOwnerPassword = $true }
+if ($NonInteractive) { $setupArgs.NonInteractive = $true }
 & (Join-Path $PSScriptRoot "Initialize-ProjexDatabase.ps1") @setupArgs
 
 Write-Host ""

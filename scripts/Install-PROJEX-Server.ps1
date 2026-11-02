@@ -4,7 +4,12 @@ param(
     [string]$PublishDirectory = (Join-Path $PSScriptRoot "..\API"),
     [string]$DatabaseHost = "127.0.0.1",
     [ValidateRange(1, 65535)][int]$DatabasePort = 5432,
-    [string]$PostgreSqlServiceName = "postgresql-x64-16"
+    [string]$PostgreSqlServiceName = "postgresql-x64-16",
+    # All = everything, PostgresOnly = install PostgreSQL only, ProvisionOnly = database + API service only
+    [ValidateSet("All", "PostgresOnly", "ProvisionOnly")][string]$Stage = "All",
+    [switch]$AutoOwnerPassword,
+    [switch]$NonInteractive,
+    [string]$LogDirectory = (Join-Path $env:ProgramData "PROJEX\Logs")
 )
 
 $ErrorActionPreference = "Stop"
@@ -71,7 +76,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $publish "Projex.Api.exe") -PathType
 }
 
 $provisioningRoot = Join-Path $env:ProgramData "PROJEX\Provisioning"
-$logRoot = Join-Path $env:ProgramData "PROJEX\Logs"
+$logRoot = $LogDirectory
 $setupLog = Join-Path $logRoot ("server-setup-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
 $installerOptions = Join-Path $provisioningRoot "postgresql16-install.ini"
 $protectedPasswordPath = Join-Path $provisioningRoot "postgresql16-admin.dpapi"
@@ -90,6 +95,9 @@ try {
 
     $service = Get-Service -Name $PostgreSqlServiceName -ErrorAction SilentlyContinue
     if ($null -eq $service) {
+        if ($Stage -eq "ProvisionOnly") {
+            throw "PostgreSQL 16 is not installed yet. Run step 1 (install PostgreSQL) first."
+        }
         $otherPostgreSqlServices = @(Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "postgresql-x64-*" })
         if ($otherPostgreSqlServices.Count -gt 0) {
             $names = ($otherPostgreSqlServices | Select-Object -ExpandProperty Name) -join ", "
@@ -160,13 +168,19 @@ try {
         throw "PostgreSQL 16 service is running but no database listener appeared on port $DatabasePort. The protected recovery credential was retained; inspect PostgreSQL logs and retry."
     }
 
+    if ($Stage -eq "PostgresOnly") {
+        Write-Host "PostgreSQL 16 is installed and running on port $DatabasePort."
+        Write-Host "Next: run step 2 to create the PROJEX database and start the server."
+        return
+    }
+
     if (Test-Path -LiteralPath $protectedPasswordPath -PathType Leaf) {
         $generatedOrRecoveredPassword = Unprotect-ProjexSecret $protectedPasswordPath
         $env:PROJEX_POSTGRES_ADMIN_PASSWORD = $generatedOrRecoveredPassword
     }
 
     Write-Host "PostgreSQL 16 is running. PROJEX will now create its database, apply migrations, install the API service, and verify readiness."
-    & (Join-Path $PSScriptRoot "Install-PROJEX-Local.ps1") -PublishDirectory $publish -DatabaseHost $DatabaseHost -DatabasePort $DatabasePort -PostgreSqlServiceName $PostgreSqlServiceName
+    & (Join-Path $PSScriptRoot "Install-PROJEX-Local.ps1") -PublishDirectory $publish -DatabaseHost $DatabaseHost -DatabasePort $DatabasePort -PostgreSqlServiceName $PostgreSqlServiceName -AutoOwnerPassword:$AutoOwnerPassword -NonInteractive:$NonInteractive
     if ($LASTEXITCODE -ne 0) { throw "PROJEX database and API provisioning failed. Review the error above and rerun server setup after correcting it." }
 
     if (Test-Path -LiteralPath $protectedPasswordPath -PathType Leaf) {
@@ -181,7 +195,8 @@ catch {
     Write-Host ""
     Write-Host "PROJEX SERVER SETUP FAILED: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "Diagnostic log: $setupLog" -ForegroundColor Yellow
-    throw
+    [Console]::Error.WriteLine("ERROR: " + $_.Exception.Message)
+    exit 1
 }
 finally {
     $env:PROJEX_POSTGRES_ADMIN_PASSWORD = $previousAdminPassword

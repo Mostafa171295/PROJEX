@@ -9,7 +9,7 @@ AppVersion={#MyAppVersion}
 AppPublisher=PROJEX
 DefaultDirName={autopf}\PROJEX
 DefaultGroupName=PROJEX Enterprise
-UninstallDisplayIcon={app}\Desktop\Projex.Desktop.exe
+UninstallDisplayIcon={app}\Clients\Desktop\Projex.Desktop.exe
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
@@ -28,7 +28,8 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Name: "server"; Description: "Install dedicated server API, control center and database setup tools"; GroupDescription: "Server components:"
 
 [Files]
-Source: "..\artifacts\package\Desktop\*"; DestDir: "{app}\Desktop"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\artifacts\package\Clients\Desktop\*"; DestDir: "{app}\Clients\Desktop"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\artifacts\package\Clients\Setup-Client.bat"; DestDir: "{app}\Clients"; Flags: ignoreversion
 Source: "..\artifacts\package\README-RUN.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\artifacts\package\Server\API\*"; DestDir: "{app}\Server\API"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 Source: "..\artifacts\package\Server\Manager\*"; DestDir: "{app}\Server\Manager"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
@@ -36,9 +37,12 @@ Source: "..\artifacts\package\Server\Scripts\*"; DestDir: "{app}\Server\Scripts"
 Source: "..\artifacts\package\Server\Database\Migrations\*"; DestDir: "{app}\Server\Database\Migrations"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 Source: "..\artifacts\package\Server\Docs\*"; DestDir: "{app}\Server\Docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 
+[Dirs]
+Name: "{app}\Server\Settings"; Tasks: server
+
 [Icons]
-Name: "{group}\PROJEX Enterprise"; Filename: "{app}\Desktop\Projex.Desktop.exe"; WorkingDir: "{app}\Desktop"
-Name: "{autodesktop}\PROJEX Enterprise"; Filename: "{app}\Desktop\Projex.Desktop.exe"; Tasks: desktopicon; WorkingDir: "{app}\Desktop"
+Name: "{group}\PROJEX Enterprise"; Filename: "{app}\Clients\Desktop\Projex.Desktop.exe"; WorkingDir: "{app}\Clients\Desktop"
+Name: "{autodesktop}\PROJEX Enterprise"; Filename: "{app}\Clients\Desktop\Projex.Desktop.exe"; Tasks: desktopicon; WorkingDir: "{app}\Clients\Desktop"
 Name: "{group}\PROJEX Server Control Center"; Filename: "{app}\Server\Manager\Projex.ServerManager.exe"; Tasks: server; WorkingDir: "{app}\Server\Manager"
 Name: "{group}\Server deployment guide"; Filename: "{app}\Server\Docs\WINDOWS_HOME_SERVER.md"; Tasks: server
 
@@ -46,7 +50,7 @@ Name: "{group}\Server deployment guide"; Filename: "{app}\Server\Docs\WINDOWS_HO
 ; A single-computer installation needs its local database and API configured before Desktop can sign in.
 ; Open the elevated Server Control Center first whenever the server component was selected.
 Filename: "{app}\Server\Manager\Projex.ServerManager.exe"; Description: "Open PROJEX Server Control Center to set up PostgreSQL and start the API"; Flags: postinstall nowait skipifsilent; Tasks: server
-Filename: "{app}\Desktop\Projex.Desktop.exe"; Description: "Launch PROJEX Enterprise"; Flags: postinstall nowait skipifsilent; Check: not WizardIsTaskSelected('server')
+Filename: "{app}\Clients\Desktop\Projex.Desktop.exe"; Description: "Launch PROJEX Enterprise"; Flags: postinstall nowait skipifsilent; Check: not WizardIsTaskSelected('server')
 
 [UninstallRun]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Server\Scripts\Uninstall-ProjexApiService.ps1"" -Confirm:$false"; Flags: runhidden; RunOnceId: "RemoveProjexApiService"; Check: FileExists(ExpandConstant('{app}\Server\Scripts\Uninstall-ProjexApiService.ps1'))

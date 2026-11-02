@@ -25,8 +25,9 @@ jobs:
       - name: Prepare isolated compile fixtures
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force artifacts/package/Desktop, artifacts/package/Server/API, artifacts/package/Server/Manager, artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
-          Set-Content -Path artifacts/package/Desktop/Projex.Desktop.exe -Value "compile-fixture"
+          New-Item -ItemType Directory -Force artifacts/package/Clients/Desktop, artifacts/package/Server/API, artifacts/package/Server/Manager, artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
+          Set-Content -Path artifacts/package/Clients/Desktop/Projex.Desktop.exe -Value "compile-fixture"
+          Set-Content -Path artifacts/package/Clients/Setup-Client.bat -Value "@echo off"
           Set-Content -Path artifacts/package/Server/API/Projex.Api.exe -Value "compile-fixture"
           Set-Content -Path artifacts/package/Server/Manager/Projex.ServerManager.exe -Value "compile-fixture"
           Set-Content -Path artifacts/package/README-RUN.txt -Value "Installer compile fixture; not a distributable build."
