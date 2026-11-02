@@ -37,8 +37,8 @@ Certificate issuance/renewal and real-machine client connectivity must still be 
 
 ## Installation profiles
 
-1. **Server:** install PostgreSQL 16, extract the complete package, run Server/Manager/Projex.ServerManager.exe as an administrator, then use Run server setup. Keep database access local.
-2. **Client:** install/extract the desktop payload only, open PROJEX, set the server's HTTPS URL in connection settings, test connectivity, then sign in.
+1. **Server:** extract the complete package, run Server/Manager/Projex.ServerManager.exe as an administrator, then use Run server setup. PostgreSQL 16 is installed automatically through WinGet if it is missing; an existing PostgreSQL 16 service is reused. Keep database access local.
+2. **Client:** extract the same ZIP and run Install-PROJEX-Client.ps1 as administrator. The script installs only Desktop into Program Files\\PROJEX\\Client and creates shortcuts. Set the server HTTPS URL in connection settings, test connectivity, then sign in.
 3. **Single-machine development:** the desktop and server may temporarily run on one Windows machine using the local API endpoint.
 
 ## Release packaging
