@@ -307,7 +307,7 @@ public sealed class MainWindow : Window
         _restartButton.IsEnabled = enabled;
     }
 
-    private void LaunchSetup() => LaunchElevatedScript("Install-PROJEX-Local.ps1");
+    private void LaunchSetup() => LaunchElevatedScript("Install-PROJEX-Server.ps1");
     private void LaunchRemoteAccessSetup() => LaunchElevatedScript("Enable-PROJEX-RemoteAccess.ps1");
     private void DisableRemoteAccess() => LaunchElevatedScript("Disable-PROJEX-RemoteAccess.ps1");
 

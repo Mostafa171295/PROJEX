@@ -8,7 +8,7 @@ Windows Service hosting provides background execution and automatic startup; it 
 
 ## Install and update the API service
 
-If you selected the optional **server payload** in the PROJEX Windows Setup wizard, the self-contained API and administration scripts are installed under `C:\Program Files\PROJEX\Server\API` and `C:\Program Files\PROJEX\Server\Scripts`. Install PostgreSQL and run the automated provisioning procedure below for the first installation; it creates the service only after the database and credentials are ready.
+The self-contained API and administration scripts are included in the PROJEX ZIP under `Server\API` and `Server\Scripts`. For a dedicated server, extract the package and run `Server\Manager\Projex.ServerManager.exe` as Administrator. Use **Run server setup** to install PostgreSQL 16 if needed, provision the database, apply migrations, and install the API service.
 
 The service runs as the built-in `NT AUTHORITY\NetworkService` account, uses delayed automatic startup and restart recovery, and reads its connection string and JWT signing key from service-specific environment values. The service registry key is restricted to Local System and local Administrators; these values are not encrypted, so local administrator access must be protected. Do not configure secrets as machine-wide environment variables.
 
@@ -35,13 +35,11 @@ Remove only the service (not published files or database data):
 
 ## Automated database and service setup on Windows
 
-The optional server payload includes `Initialize-ProjexDatabase.ps1` and the numbered SQL migrations. Install PostgreSQL 16 Server separately and make sure its Windows service is running. The PostgreSQL client tool `psql.exe` must also be available on PATH. The PROJEX installer does not silently install or reconfigure a database server.
+The server payload includes an automated bootstrap script and the numbered SQL migrations. On a supported Windows 10/11 x64 machine with Microsoft's App Installer (winget) and Internet access, the Server Control Center installs PostgreSQL 16 automatically if it is missing. It reuses an existing PostgreSQL 16 service and refuses to replace another PostgreSQL major version or take over an occupied database port.
 
-Open PowerShell as Administrator and run the setup script from the installed server folder:
+Open `Server/Manager/Projex.ServerManager.exe` as Administrator and select **Run server setup**. The bootstrap installs PostgreSQL 16 through the exact `PostgreSQL.PostgreSQL.16` WinGet package, whose installer integrity is checked by WinGet, configures it unattended with a locally generated password, and then provisions the PROJEX database and API service. The temporary installer options are ACL-restricted; the generated database administrator credential is protected with Windows DPAPI and removed after successful provisioning. If setup is interrupted, the protected recovery credential is retained so the operation can be retried.
 
-~~~powershell
-& "C:\Program Files\PROJEX\Server\Scripts\Initialize-ProjexDatabase.ps1" -PublishDirectory "C:\Program Files\PROJEX\Server\API"
-~~~
+The setup prompts for one new `projex_owner` migration password (minimum 32 UTF-8 bytes) and confirmation. Save this password in an approved password vault. If PostgreSQL 16 was already installed before PROJEX, setup instead asks for its administrator password without echoing it.
 
 The script:
 
@@ -84,9 +82,15 @@ Migrations, RLS, tenant isolation, authentication and production security still 
 Desktop clients connect to the server's HTTPS/VPN address. They must not start a second API or local database on each employee PC. Remote clients cannot directly start or stop the Windows service on the host.
 
 
-On each employee PC:
+On each employee PC, extract the PROJEX ZIP and run PowerShell as Administrator:
 
-1. Install the PROJEX desktop client.
+~~~powershell
+.\\Install-PROJEX-Client.ps1
+~~~
+
+This copies only the desktop client to `C:\\Program Files\\PROJEX\\Client` and creates Start menu and desktop shortcuts. It does not install PostgreSQL, the API, or Server Control Center.
+
+1. Launch **PROJEX Enterprise** from the Start menu.
 2. Open **Settings → Connection settings** (or enter the address on the sign-in screen).
 3. Enter the API base address published by the organization, for example `https://projex.company.com/` or the HTTPS/VPN hostname configured by IT.
 4. Select **Test connection**. The client checks `/health/live` and `/health/ready` separately so an API outage can be distinguished from a database-readiness failure.
