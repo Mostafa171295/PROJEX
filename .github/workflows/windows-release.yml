@@ -55,7 +55,7 @@ jobs:
           retention-days: 14
 
   publish-windows:
-    name: Publish portable Windows package
+    name: Publish Windows installer and portable package
     needs: test
     runs-on: windows-latest
     timeout-minutes: 40
@@ -168,7 +168,7 @@ jobs:
           }
           "tag_name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Publish GitHub Release and attach ZIP
+      - name: Publish GitHub Release with installer and portable ZIP
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.release_meta.outputs.tag_name }}
