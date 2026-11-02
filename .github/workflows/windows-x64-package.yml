@@ -84,11 +84,21 @@ jobs:
           Compress-Archive -Path "${{ runner.temp }}\projex-win-x64\*" -DestinationPath "$package.zip" -Force
           Get-Item "$package.zip" | Format-List Name,Length,FullName
 
+      - name: Verify ZIP package exists
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "PROJEX-Windows-x64.zip"
+          if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) {
+            Get-ChildItem -LiteralPath $env:RUNNER_TEMP | Format-Table Name,Length
+            throw "Expected package ZIP was not found: $zip"
+          }
+          Get-Item -LiteralPath $zip | Format-List Name,Length,FullName
+
       - name: Upload Windows x64 package
         uses: actions/upload-artifact@v4
         with:
           name: PROJEX-Windows-x64
-          path: "${{ runner.temp }}\PROJEX-Windows-x64.zip"
+          path: "${{ runner.temp }}/PROJEX-Windows-x64.zip"
           if-no-files-found: error
           retention-days: 14
 
