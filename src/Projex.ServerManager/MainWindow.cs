@@ -19,7 +19,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock _apiHealthValue = ValueText("Checking…");
     private readonly TextBlock _databaseHealthValue = ValueText("Checking…");
     private readonly TextBlock _lastCheckedValue = new() { Foreground = Brush("#64748B"), FontSize = 11 };
-    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Foreground = Brush("#64748B") };
+    private readonly TextBlock _status = new() { Text = "First installation: select Run server setup to install or configure PostgreSQL 16, create the PROJEX database, apply migrations and start the API service. Opening PROJEX Desktop alone does not start the database or API.", TextWrapping = TextWrapping.Wrap, Foreground = Brush("#64748B") };
     private readonly Button _startButton = ActionButton("Start server");
     private readonly Button _stopButton = ActionButton("Stop server");
     private readonly Button _restartButton = ActionButton("Restart server");
@@ -220,7 +220,17 @@ public sealed class MainWindow : Window
             _databaseHealthValue.Text = ready;
             _status.Text = live == "Online" && ready == "Ready"
                 ? "All local server checks passed. PROJEX is ready to accept authenticated client connections."
-                : "One or more checks failed. Review the service states and confirm PostgreSQL and the API are running.";
+                : serviceStates.Database == "Not installed"
+                    ? "PostgreSQL 16 is not installed. This is a first-time setup: select Run server setup. It will install PostgreSQL 16 when WinGet is available, create the PROJEX database, apply migrations and install/start the API service."
+                    : serviceStates.Api == "Not installed"
+                        ? "The PROJEX API Windows service is not installed. Select Run server setup to provision the database and install/start the API service."
+                        : serviceStates.Database != "Running"
+                            ? $"The PostgreSQL service is {serviceStates.Database}. Start/fix PostgreSQL, then select Run server setup again."
+                            : serviceStates.Api != "Running"
+                                ? $"The PROJEX API service is {serviceStates.Api}. Select Run server setup to install or repair the service."
+                                : ready != "Ready"
+                                    ? "The API process is running, but database readiness failed. Select Run server setup to rerun database provisioning, or inspect the latest setup log under C:\\ProgramData\\PROJEX\\Logs."
+                                    : "The local server is not ready. Review the service states and the latest setup log under C:\\ProgramData\\PROJEX\\Logs.";
             _lastCheckedValue.Text = DateTimeOffset.Now.ToString("g");
             _startButton.IsEnabled = serviceStates.Api != "Running";
             _stopButton.IsEnabled = serviceStates.Api == "Running";
@@ -324,8 +334,12 @@ public sealed class MainWindow : Window
         _status.Text = "Server setup is running with administrator permission. This may take several minutes...";
         try
         {
-            var process = Process.Start(new ProcessStartInfo("powershell.exe")
+            var powerShell = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+                "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+            var process = Process.Start(new ProcessStartInfo(powerShell)
             {
+                WorkingDirectory = Path.GetDirectoryName(script)!,
                 UseShellExecute = true,
                 Verb = "runas",
                 Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\""
