@@ -77,8 +77,7 @@ New-ItemProperty -LiteralPath $registryPath -Name Environment -PropertyType Mult
 
 # Service-specific environment values include credentials. Restrict the service
 # registry key to SYSTEM and local Administrators; ordinary users cannot read it.
-$key = Get-Item -LiteralPath $registryPath
-$acl = $key.GetAccessControl()
+$acl = Get-Acl -LiteralPath $registryPath
 $acl.SetAccessRuleProtection($true, $false)
 foreach ($rule in @($acl.Access)) { $acl.RemoveAccessRuleAll($rule) }
 $systemSid = [Security.Principal.SecurityIdentifier]::new("S-1-5-18")
@@ -93,7 +92,7 @@ $acl.AddAccessRule([Security.AccessControl.RegistryAccessRule]::new(
     [Security.AccessControl.InheritanceFlags]::ContainerInherit,
     [Security.AccessControl.PropagationFlags]::None,
     [Security.AccessControl.AccessControlType]::Allow))
-$key.SetAccessControl($acl)
+Set-Acl -LiteralPath $registryPath -AclObject $acl
 
 Start-Service -Name $ServiceName
 (Get-Service -Name $ServiceName).WaitForStatus("Running", [TimeSpan]::FromSeconds(30))
