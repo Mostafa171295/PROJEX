@@ -124,8 +124,9 @@ jobs:
 
           SERVER (optional installer component)
           The optional server component includes the API, database migrations, and setup/maintenance scripts.
-          Install PostgreSQL 16 separately, then run PowerShell as Administrator:
-          Server\Scripts\Initialize-ProjexDatabase.ps1 -PublishDirectory Server\API
+          Install PostgreSQL 16 separately, then open PowerShell as Administrator and run:
+          Set-Location "$env:ProgramFiles\PROJEX"
+          .\Server\Scripts\Initialize-ProjexDatabase.ps1 -PublishDirectory .\Server\API
           Setup creates the database and least-privilege roles, applies migrations, generates the API key,
           protects service-specific configuration, installs the Windows service, and checks readiness.
           The setup prompts for the PostgreSQL administrator and migration-owner passwords without echoing them.
