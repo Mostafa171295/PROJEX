@@ -43,7 +43,10 @@ Name: "{group}\PROJEX Server Control Center"; Filename: "{app}\Server\Manager\Pr
 Name: "{group}\Server deployment guide"; Filename: "{app}\Server\Docs\WINDOWS_HOME_SERVER.md"; Tasks: server
 
 [Run]
-Filename: "{app}\Desktop\Projex.Desktop.exe"; Description: "Launch PROJEX Enterprise"; Flags: postinstall nowait skipifsilent
+; A single-computer installation needs its local database and API configured before Desktop can sign in.
+; Open the elevated Server Control Center first whenever the server component was selected.
+Filename: "{app}\Server\Manager\Projex.ServerManager.exe"; Description: "Open PROJEX Server Control Center to set up PostgreSQL and start the API"; Flags: postinstall nowait skipifsilent; Tasks: server
+Filename: "{app}\Desktop\Projex.Desktop.exe"; Description: "Launch PROJEX Enterprise"; Flags: postinstall nowait skipifsilent; Check: not WizardIsTaskSelected('server')
 
 [UninstallRun]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\Server\Scripts\Uninstall-ProjexApiService.ps1"" -Confirm:$false"; Flags: runhidden; RunOnceId: "RemoveProjexApiService"; Check: FileExists(ExpandConstant('{app}\Server\Scripts\Uninstall-ProjexApiService.ps1'))

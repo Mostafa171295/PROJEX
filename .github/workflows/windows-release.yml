@@ -93,24 +93,44 @@ jobs:
         run: |
           @'
           @echo off
-          cd /d "%~dp0Desktop"
-          start "" "Projex.Desktop.exe"
+          setlocal
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { Invoke-WebRequest -Uri 'http://127.0.0.1:5080/health/ready' -UseBasicParsing -TimeoutSec 3 | Out-Null; exit 0 } catch { exit 1 }"
+          if errorlevel 1 (
+            echo PROJEX local API/database is not ready yet.
+            echo Opening Server Control Center. Select Run server setup and wait for Database readiness: Ready.
+            start "" "%~dp0Server\Manager\Projex.ServerManager.exe"
+            echo After setup succeeds, run Start-PROJEX.bat again.
+            exit /b 1
+          )
+          start "" "%~dp0Desktop\Projex.Desktop.exe"
           '@ | Set-Content -Encoding ascii artifacts/package/Start-PROJEX.bat
 
           @'
+          @echo off
+          start "" "%~dp0Server\Manager\Projex.ServerManager.exe"
+          '@ | Set-Content -Encoding ascii artifacts/package/Start-PROJEX-Server-Setup.bat
+
+          @'
           PROJEX ENTERPRISE - Windows x64 package
+
+          SINGLE COMPUTER - FIRST RUN
+          1. Double-click Start-PROJEX-Server-Setup.bat and approve the Windows administrator prompt.
+          2. In Server Control Center, select Run server setup. This installs PostgreSQL 16 if missing, creates the PROJEX database, applies migrations, installs/starts the API Windows Service, and checks database readiness.
+          3. If PostgreSQL 16 is missing, an Internet connection and Microsoft's App Installer (WinGet) are required. If PostgreSQL 16 already exists, setup asks for its administrator password.
+          4. Choose and confirm the projex_owner migration password and save it in a password manager.
+          5. When Database readiness shows Ready, double-click Start-PROJEX.bat to open Desktop.
+          Start-PROJEX.bat checks the local API/database readiness first. If they are not ready, it opens Server Control Center and does not launch Desktop. Opening Projex.Desktop.exe directly does not install or start the backend.
 
           CLIENT
           Run PowerShell as Administrator and execute .\Install-PROJEX-Client.ps1 to install only the desktop client and create shortcuts.
           In PROJEX connection settings, enter the server HTTPS address. Client devices do not need PostgreSQL or the API service.
 
           DEDICATED SERVER
-          Run Server\Manager\Projex.ServerManager.exe as Administrator. Run server setup installs PostgreSQL 16 automatically when it is missing through Microsoft WinGet, or reuses an existing PostgreSQL 16 service. An Internet connection and Windows App Installer are required for first-time database installation.
-          Use Run server setup to create the database, apply migrations, and install the PROJEX API Windows Service.
+          On the host PC, double-click Start-PROJEX-Server-Setup.bat and use Run server setup. The setup installs PostgreSQL 16 automatically when it is missing through Microsoft WinGet, or reuses an existing PostgreSQL 16 service.
           The manager provides API service controls, PostgreSQL service status, API liveness/readiness checks, and maintenance shortcuts.
 
           MULTI-DEVICE SECURITY
-          The API starts in loopback-only mode. On the dedicated server, run Server\Manager\Projex.ServerManager.exe as Administrator and choose Enable secure LAN access. The wizard requires a trusted PFX certificate, a DNS name that resolves to the server, and the private client subnet. It configures an HTTPS listener and a subnet-scoped Windows Firewall rule.
+          The API starts in loopback-only mode. On the dedicated server, run Server\Manager\Projex.ServerManager.exe and choose Enable secure LAN access. The wizard requires a trusted PFX certificate, a DNS name that resolves to the server, and the private client subnet. It configures an HTTPS listener and a subnet-scoped Windows Firewall rule.
           Install the issuing certificate authority on each client device and use the HTTPS address shown by the wizard. Plan certificate renewal before expiry.
           Never expose PostgreSQL port 5432 or the local API HTTP port to client devices or the public Internet. Choose Disable secure LAN access to return to loopback-only mode.
 
@@ -130,10 +150,17 @@ jobs:
             "artifacts/package/Server/Manager/Projex.ServerManager.exe",
             "artifacts/package/Server/Scripts/Install-PROJEX-Local.ps1",
             "artifacts/package/Server/Scripts/Install-PROJEX-Server.ps1",
+            "artifacts/package/Start-PROJEX.bat",
+            "artifacts/package/Start-PROJEX-Server-Setup.bat",
+            "artifacts/package/README-RUN.txt",
             "artifacts/package/Install-PROJEX-Client.ps1",
             "artifacts/package/Server/Docs/CLIENT_SERVER_ARCHITECTURE.md"
           )) {
             if (!(Test-Path $required)) { throw "Required package file is missing: $required" }
+          }
+          $desktopLauncher = Get-Content artifacts/package/Start-PROJEX.bat -Raw
+          if ($desktopLauncher -notmatch "/health/ready" -or $desktopLauncher -notmatch "Start-PROJEX-Server-Setup.bat|Projex.ServerManager.exe") {
+            throw "Start-PROJEX.bat must check API/database readiness and direct first-run users to Server Control Center."
           }
           $assets = @(Get-ChildItem artifacts -File)
           if ($assets.Count -ne 1 -or $assets[0].Name -ne "PROJEX-Windows-win-x64.zip") {

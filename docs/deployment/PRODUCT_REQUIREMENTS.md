@@ -32,24 +32,20 @@ These targets assume a small single-user workload. Large schedules, reports, con
 - Administrator rights for initial database provisioning and Windows service installation.
 - The PROJEX release package. The desktop and API are self-contained; a separate .NET runtime is not required.
 
-The current installer packages the PROJEX desktop and API payload. PostgreSQL is a separate prerequisite and is not silently installed or reconfigured by the PROJEX installer.
+The installer packages the PROJEX desktop, API, Server Control Center and setup scripts. When the server component is selected (the default), the installer opens Server Control Center after installation. PostgreSQL is installed/configured only when the user explicitly selects **Run server setup** there; it is never silently installed during the file-copy phase.
 
 ## First-time single-computer setup
 
-1. Install PostgreSQL 16 using its official Windows installer. Keep its listener restricted to localhost; do not enable remote access for the single-computer edition.
-2. Run the PROJEX Setup installer. Keep the **Local API server and database setup files** component selected.
-3. Open Windows PowerShell as Administrator.
-4. Run the local setup helper from the installed server scripts directory:
+1. Run the PROJEX Setup installer and keep the **Server components** option selected. When installation finishes, **PROJEX Server Control Center** opens automatically. If it does not, open it from Start → PROJEX Enterprise → PROJEX Server Control Center.
+2. In Server Control Center, select **Run server setup**. Approve the Windows administrator prompt if shown.
+3. If PostgreSQL 16 is not installed, setup installs it through Windows Package Manager (WinGet). This first-time database installation requires Internet access and Microsoft's App Installer. If PostgreSQL 16 already exists, setup reuses it and asks for its administrator password.
+4. Choose and confirm the projex_owner migration password when prompted. Save it in a password manager; passwords are not echoed to the console.
+5. Keep the setup window open until it reports success. Setup creates the application roles and projex_enterprise database, applies numbered migrations, installs/starts the PROJEX API Windows service and checks the health/ready endpoint.
+6. Open **PROJEX Enterprise** from the Start menu. Its default local API address is http://127.0.0.1:5080/. Sign-in is available only after server setup passes the readiness check.
 
-   ```powershell
-   & "C:\Program Files\PROJEX\Server\Scripts\Install-PROJEX-Local.ps1"
-   ```
+Opening Desktop alone does not install PostgreSQL, create the database or start the API. If setup fails, Server Control Center opens the diagnostic log; logs are also saved under C:\ProgramData\PROJEX\Logs. Correct the reported prerequisite/error and choose **Run server setup** again. Do not delete the PostgreSQL data directory or the PROJEX database to troubleshoot.
 
-5. Enter the PostgreSQL administrator password when prompted. Choose and securely store the migration-owner password when prompted. Passwords are not echoed to the console.
-6. Wait for database provisioning, migrations, Windows service installation, and the readiness check to finish.
-7. Open PROJEX Desktop and use the local API endpoint `http://127.0.0.1:5080/` in Connection settings if it is not already configured.
-
-The helper refuses non-loopback database endpoints and refuses to continue if PostgreSQL is listening on a non-loopback address on the selected port. It does not install PostgreSQL or change PostgreSQL network configuration automatically.
+The local setup refuses non-loopback database endpoints and a PostgreSQL listener bound to a non-loopback address. It does not expose PostgreSQL or the API to the network.
 
 ## Backup and recovery
 
