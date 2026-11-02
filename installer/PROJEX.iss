@@ -25,12 +25,13 @@ DisableProgramGroupPage=yes
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
-Name: "server"; Description: "Install local API server payload and database setup tools (recommended)"; GroupDescription: "Server components:"
+Name: "server"; Description: "Install dedicated server API, control center and database setup tools"; GroupDescription: "Server components:"
 
 [Files]
 Source: "..\artifacts\package\Desktop\*"; DestDir: "{app}\Desktop"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\artifacts\package\README-RUN.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\artifacts\package\Server\API\*"; DestDir: "{app}\Server\API"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
+Source: "..\artifacts\package\Server\Manager\*"; DestDir: "{app}\Server\Manager"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 Source: "..\artifacts\package\Server\Scripts\*"; DestDir: "{app}\Server\Scripts"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 Source: "..\artifacts\package\Server\Database\Migrations\*"; DestDir: "{app}\Server\Database\Migrations"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 Source: "..\artifacts\package\Server\Docs\*"; DestDir: "{app}\Server\Docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
@@ -38,6 +39,7 @@ Source: "..\artifacts\package\Server\Docs\*"; DestDir: "{app}\Server\Docs"; Flag
 [Icons]
 Name: "{group}\PROJEX Enterprise"; Filename: "{app}\Desktop\Projex.Desktop.exe"; WorkingDir: "{app}\Desktop"
 Name: "{autodesktop}\PROJEX Enterprise"; Filename: "{app}\Desktop\Projex.Desktop.exe"; Tasks: desktopicon; WorkingDir: "{app}\Desktop"
+Name: "{group}\PROJEX Server Control Center"; Filename: "{app}\Server\Manager\Projex.ServerManager.exe"; Tasks: server; WorkingDir: "{app}\Server\Manager"
 Name: "{group}\Server deployment guide"; Filename: "{app}\Server\Docs\WINDOWS_HOME_SERVER.md"; Tasks: server
 
 [Run]

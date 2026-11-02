@@ -5,6 +5,7 @@
     <Project Path="src/Projex.Application/Projex.Application.csproj" />
     <Project Path="src/Projex.Infrastructure/Projex.Infrastructure.csproj" />
     <Project Path="src/Projex.Desktop/Projex.Desktop.csproj" />
+    <Project Path="src/Projex.ServerManager/Projex.ServerManager.csproj" />
     <Project Path="src/Projex.Scheduling.Engine/Projex.Scheduling.Engine.csproj" />
     <Project Path="src/Projex.Cost.Engine/Projex.Cost.Engine.csproj" />
   </Folder>

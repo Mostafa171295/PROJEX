@@ -2,20 +2,15 @@ name: Windows Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      tag_name:
-        description: "Release tag (leave empty to create a build-N tag)"
-        required: false
-        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: windows-release-${{ github.ref }}
+  group: windows-release-latest
   cancel-in-progress: false
 
 jobs:
@@ -26,7 +21,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
@@ -35,16 +29,12 @@ jobs:
           cache-dependency-path: |
             **/*.csproj
             global.json
-
       - name: Restore
         run: dotnet restore Projex.slnx
-
       - name: Build
         run: dotnet build Projex.slnx --configuration Release --no-restore
-
       - name: Test (includes PostgreSQL integration tests)
         run: dotnet test Projex.slnx --configuration Release --no-build --logger "trx;LogFileName=projex-tests.trx"
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -55,7 +45,7 @@ jobs:
           retention-days: 14
 
   publish-windows:
-    name: Publish Windows installer and portable package
+    name: Publish single Windows ZIP
     needs: test
     runs-on: windows-latest
     timeout-minutes: 40
@@ -64,7 +54,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
@@ -73,38 +62,30 @@ jobs:
           cache-dependency-path: |
             **/*.csproj
             global.json
-
       - name: Restore
         run: dotnet restore Projex.slnx
-
-      - name: Publish Desktop (self-contained win-x64)
+      - name: Publish Desktop client (self-contained win-x64)
         run: >
           dotnet publish src/Projex.Desktop/Projex.Desktop.csproj
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          --output artifacts/package/Desktop
-          -p:DebugType=None
-          -p:DebugSymbols=false
-
-      - name: Publish API (self-contained win-x64)
+          --configuration Release --runtime win-x64 --self-contained true
+          --output artifacts/package/Desktop -p:DebugType=None -p:DebugSymbols=false
+      - name: Publish API server (self-contained win-x64)
         run: >
           dotnet publish src/Projex.Api/Projex.Api.csproj
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          --output artifacts/package/Server/API
-          -p:DebugType=None
-          -p:DebugSymbols=false
-
+          --configuration Release --runtime win-x64 --self-contained true
+          --output artifacts/package/Server/API -p:DebugType=None -p:DebugSymbols=false
+      - name: Publish Server Control Center (self-contained win-x64)
+        run: >
+          dotnet publish src/Projex.ServerManager/Projex.ServerManager.csproj
+          --configuration Release --runtime win-x64 --self-contained true
+          --output artifacts/package/Server/Manager -p:DebugType=None -p:DebugSymbols=false
       - name: Stage server administration payload
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/package/Server/Scripts, artifacts/package/Server/Docs, artifacts/package/Server/Database/Migrations | Out-Null
           Copy-Item scripts/Install-ProjexApiService.ps1, scripts/Uninstall-ProjexApiService.ps1, scripts/Test-ProjexApiService.ps1, scripts/Initialize-ProjexDatabase.ps1, scripts/Install-PROJEX-Local.ps1, scripts/Backup-ProjexDatabase.ps1, scripts/Restore-ProjexDatabase.ps1, scripts/Register-ProjexBackupTask.ps1, scripts/migrate.ps1 -Destination artifacts/package/Server/Scripts
           Copy-Item database/migrations/*.sql -Destination artifacts/package/Server/Database/Migrations
-          Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md, docs/deployment/PRODUCT_REQUIREMENTS.md -Destination artifacts/package/Server/Docs
-
+          Copy-Item docs/deployment/WINDOWS_HOME_SERVER.md, docs/deployment/POSTGRES_BACKUP_RESTORE.md, docs/deployment/PRODUCT_REQUIREMENTS.md, docs/deployment/CLIENT_SERVER_ARCHITECTURE.md -Destination artifacts/package/Server/Docs
       - name: Add launch helper and package instructions
         shell: pwsh
         run: |
@@ -115,76 +96,70 @@ jobs:
           '@ | Set-Content -Encoding ascii artifacts/package/Start-PROJEX.bat
 
           @'
-          PROJEX ENTERPRISE - Windows x64 portable package
+          PROJEX ENTERPRISE - Windows x64 package
 
-          DESKTOP
-          Double-click Start-PROJEX.bat or Desktop\Projex.Desktop.exe.
-          Keep all files in the Desktop folder together.
+          CLIENT
+          Run Start-PROJEX.bat or Desktop\Projex.Desktop.exe on each user workstation.
+          In PROJEX connection settings, enter the server HTTPS address. Client devices do not need PostgreSQL or the API service.
 
-          SERVER (local single-computer setup)
-          The server component includes the API, database migrations, and setup/maintenance scripts. It is selected by default in Setup.
-          Install PostgreSQL 16 separately and keep its listener restricted to localhost.
-          Open PowerShell as Administrator and run:
-          .\Server\Scripts\Install-PROJEX-Local.ps1
-          Setup creates the database and least-privilege roles, applies migrations, generates the API key,
-          protects service-specific configuration, installs the Windows service, and checks readiness.
-          The setup prompts for the PostgreSQL administrator and migration-owner passwords without echoing them.
-          The API binds to loopback; use a same-host HTTPS reverse proxy or VPN gateway for remote users.
-          Never expose PostgreSQL port 5432 to the public Internet.
+          DEDICATED SERVER
+          Install PostgreSQL 16 on the server and keep its database listener restricted to localhost.
+          Run Server\Manager\Projex.ServerManager.exe as Administrator.
+          Use Run server setup to create the database, apply migrations, and install the PROJEX API Windows Service.
+          The manager provides API service controls, PostgreSQL service status, API liveness/readiness checks, and maintenance shortcuts.
+
+          MULTI-DEVICE SECURITY
+          The current API provisioning profile binds the API to loopback. For remote clients, publish a trusted HTTPS endpoint through an approved TLS reverse proxy or VPN gateway on the server, forwarding to the local API endpoint.
+          Configure certificate renewal and firewall rules before connecting client devices.
+          Never expose PostgreSQL port 5432 to client devices or the public Internet. Do not expose the API's local HTTP port directly.
 
           REQUIREMENTS
-          Windows 10/11 x64; Windows 11 recommended. Entry target: 8 GB RAM and SSD; recommended: 16 GB RAM and SSD. See Server\\Docs\\PRODUCT_REQUIREMENTS.md. No separate .NET runtime installation is required.
-          The Setup installer selects the local server component by default; it can be unchecked for a desktop-only client.
-          See Server\Docs\PRODUCT_REQUIREMENTS.md for initial hardware targets and real-machine release-readiness checks.
+          Windows 10/11 x64; Windows 11 recommended. Entry target: 8 GB RAM and SSD; recommended: 16 GB RAM and SSD. No separate .NET runtime installation is required.
+          See Server\Docs\CLIENT_SERVER_ARCHITECTURE.md and PRODUCT_REQUIREMENTS.md.
           '@ | Set-Content -Encoding utf8 artifacts/package/README-RUN.txt
-
-      - name: Create ZIP
+      - name: Create and validate the single ZIP
         shell: pwsh
         run: |
           $zip = "artifacts/PROJEX-Windows-win-x64.zip"
           Compress-Archive -Path "artifacts/package/*" -DestinationPath $zip -CompressionLevel Optimal
           if (!(Test-Path $zip)) { throw "ZIP package was not created." }
-          if (!(Test-Path "artifacts/package/Desktop/Projex.Desktop.exe")) { throw "Desktop executable is missing." }
-          if (!(Test-Path "artifacts/package/Server/API/Projex.Api.exe")) { throw "API executable is missing." }
-          if (!(Test-Path "artifacts/package/Server/Scripts/Install-PROJEX-Local.ps1")) { throw "Local setup helper is missing." }
-          if (!(Test-Path "artifacts/package/Server/Docs/PRODUCT_REQUIREMENTS.md")) { throw "Product requirements guide is missing." }
-
-      - name: Build Inno Setup installer
-        shell: pwsh
-        run: |
-          choco install innosetup --yes --no-progress
-          $compiler = Join-Path ([Environment]::GetFolderPath("ProgramFilesX86")) "Inno Setup 6\ISCC.exe"
-          if (!(Test-Path $compiler)) { throw "Inno Setup compiler was not installed." }
-          & $compiler /DMyAppVersion=0.9.2-preview.1 installer/PROJEX.iss
-          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed ($LASTEXITCODE)." }
-          if (!(Test-Path "artifacts/PROJEX-Setup-win-x64.exe")) { throw "Installer executable was not created." }
-
-      - name: Determine release tag
-        id: release_meta
-        shell: pwsh
-        env:
-          INPUT_TAG: ${{ inputs.tag_name }}
-          EVENT_NAME: ${{ github.event_name }}
-          REF_NAME: ${{ github.ref_name }}
-          RUN_NUMBER: ${{ github.run_number }}
-        run: |
-          if ($env:EVENT_NAME -eq "push") {
-            $tag = $env:REF_NAME
-          } elseif (![string]::IsNullOrWhiteSpace($env:INPUT_TAG)) {
-            $tag = $env:INPUT_TAG.Trim()
-          } else {
-            $tag = "build-$($env:RUN_NUMBER)"
+          foreach ($required in @(
+            "artifacts/package/Desktop/Projex.Desktop.exe",
+            "artifacts/package/Server/API/Projex.Api.exe",
+            "artifacts/package/Server/Manager/Projex.ServerManager.exe",
+            "artifacts/package/Server/Scripts/Install-PROJEX-Local.ps1",
+            "artifacts/package/Server/Docs/CLIENT_SERVER_ARCHITECTURE.md"
+          )) {
+            if (!(Test-Path $required)) { throw "Required package file is missing: $required" }
           }
-          "tag_name=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
-      - name: Publish GitHub Release with installer and portable ZIP
+          $assets = @(Get-ChildItem artifacts -File)
+          if ($assets.Count -ne 1 -or $assets[0].Name -ne "PROJEX-Windows-win-x64.zip") {
+            throw "The release staging directory must contain exactly one ZIP asset."
+          }
+      - name: Publish or update the single latest release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          tag_name: latest
           target_commitish: ${{ github.sha }}
-          name: PROJEX ${{ steps.release_meta.outputs.tag_name }}
-          generate_release_notes: true
-          prerelease: ${{ contains(steps.release_meta.outputs.tag_name, 'preview') }}
-          files: |
-            artifacts/PROJEX-Windows-win-x64.zip
-            artifacts/PROJEX-Setup-win-x64.exe
+          name: PROJEX — Latest
+          body: |
+            This release is automatically replaced after successful validation of the latest main branch.
+
+            Download the single Windows x64 package: PROJEX-Windows-win-x64.zip.
+            It contains the desktop client, dedicated server API, Server Control Center, setup scripts, database migrations, and deployment documentation.
+          draft: false
+          prerelease: true
+          overwrite_files: true
+          files: artifacts/PROJEX-Windows-win-x64.zip
+      - name: Remove superseded releases and version tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $oldTags = gh release list --limit 1000 --json tagName --jq '.[] | select(.tagName != "latest") | .tagName'
+          foreach ($tag in $oldTags) {
+            if (![string]::IsNullOrWhiteSpace($tag)) {
+              gh release delete $tag --yes --cleanup-tag
+              if ($LASTEXITCODE -ne 0) { throw "Could not remove superseded release/tag '$tag'." }
+            }
+          }
