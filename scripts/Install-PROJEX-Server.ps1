@@ -143,6 +143,16 @@ try {
         throw "PostgreSQL 16 service '$PostgreSqlServiceName' did not reach Running state. The protected recovery credential was retained; fix the service and rerun setup."
     }
 
+    $listenerDeadline = [DateTime]::UtcNow.AddSeconds(60)
+    do {
+        $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $DatabasePort -ErrorAction SilentlyContinue)
+        if ($listeners.Count -gt 0) { break }
+        Start-Sleep -Seconds 2
+    } while ([DateTime]::UtcNow -lt $listenerDeadline)
+    if ($listeners.Count -eq 0) {
+        throw "PostgreSQL 16 service is running but no database listener appeared on port $DatabasePort. The protected recovery credential was retained; inspect PostgreSQL logs and retry."
+    }
+
     if (Test-Path -LiteralPath $protectedPasswordPath -PathType Leaf) {
         $generatedOrRecoveredPassword = Unprotect-ProjexSecret $protectedPasswordPath
         $env:PROJEX_POSTGRES_ADMIN_PASSWORD = $generatedOrRecoveredPassword
