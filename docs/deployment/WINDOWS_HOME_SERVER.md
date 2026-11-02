@@ -45,17 +45,47 @@ Remove only the service (not published files or database data):
 .\scripts\Uninstall-ProjexApiService.ps1
 ~~~
 
-## Database setup (operator-run preview procedure)
+## Automated database and service setup on Windows
 
-The Compose file runs PostgreSQL 16 with a persistent named volume and binds port 5432 to loopback only. On Windows with Docker Desktop in Linux-container mode:
+The optional server payload includes `Initialize-ProjexDatabase.ps1` and the numbered SQL migrations. Install PostgreSQL 16 Server separately and make sure its Windows service is running. The PostgreSQL client tool `psql.exe` must also be available on PATH. The PROJEX installer does not silently install or reconfigure a database server.
 
-1. Install Docker Desktop and PostgreSQL client tools (psql.exe).
-2. Copy .env.example to .env and replace all three placeholder passwords. Never commit or share .env.
-3. Run docker compose up -d and confirm docker compose ps reports PostgreSQL healthy. Role initialization runs only when the data volume is first created.
-4. Set PGPASSWORD for the current PowerShell process to PROJEX_OWNER_PASSWORD, run .\scripts\migrate.ps1, then clear PGPASSWORD. The runner applies numbered SQL files in order and tracks them in public.schema_migrations.
-5. Configure the API connection string with PROJEX_APP_PASSWORD, not the owner or superuser password.
+Open PowerShell as Administrator and run the setup script from the installed server folder:
 
-The migration runner requires psql.exe on PATH (or -PsqlPath), network access, and the projex_owner role. It does not create the PostgreSQL server, database, or roles. Back up the database before migrations. Do not delete the Docker volume to troubleshoot; that destroys database contents.
+~~~powershell
+& "C:\Program Files\PROJEX\Server\Scripts\Initialize-ProjexDatabase.ps1" -PublishDirectory "C:\Program Files\PROJEX\Server\API"
+~~~
+
+The script:
+
+1. Prompts for the PostgreSQL administrator password without echoing it.
+2. Prompts for a new `projex_owner` migration password (minimum 32 UTF-8 bytes) and confirmation. Save this password in an approved password vault.
+3. Creates or updates the `projex_owner` and `projex_app` roles as non-superusers without `BYPASSRLS`; generates the application password and JWT signing key cryptographically.
+4. Creates the application database if it does not exist, applies the packaged numbered migrations using `projex_owner`, and builds the API connection string for the restricted `projex_app` role.
+5. Installs or updates the `PROJEX API` Windows service, stores the API connection string and JWT key only in that service's registry environment, and restricts that service registry key to Local System and local Administrators.
+6. Starts the service and checks `/health/ready` to confirm PostgreSQL connectivity.
+
+The temporary SQL file containing role credentials is created under `C:\ProgramData\PROJEX\Provisioning` with restricted NTFS permissions and removed at the end. Secrets are not printed or passed as command-line arguments. The service-specific registry values are not encrypted; local Administrators and Local System can access them, so protect administrator access to the server.
+
+For a PostgreSQL server on another machine, use `-SslMode VerifyFull -RootCertificate "C:\path\to\root.crt"`. The setup refuses remote database hosts without full certificate and hostname verification. For a local PostgreSQL instance, the default loopback connection uses `SSL Mode=Prefer`.
+
+To check the service later:
+
+~~~powershell
+& "C:\Program Files\PROJEX\Server\Scripts\Test-ProjexApiService.ps1" -HealthUrl "http://127.0.0.1:5080/health/ready"
+~~~
+
+Running the provisioning script again resets the generated `projex_app` password and JWT key and updates the service configuration; it also reapplies only migrations not already recorded. Keep the `projex_owner` password in the password vault for controlled future migration work.
+
+### Docker Compose preview option
+
+For a local preview rather than a separately installed PostgreSQL Windows service, the repository's Docker Compose file runs PostgreSQL 16 with a persistent named volume and binds port 5432 to loopback only. On Windows with Docker Desktop in Linux-container mode:
+
+1. Install Docker Desktop and PostgreSQL client tools (`psql.exe`).
+2. Copy `.env.example` to `.env` and replace all three placeholder passwords. Never commit or share `.env`.
+3. Run `docker compose up -d` and confirm `docker compose ps` reports PostgreSQL healthy. Role initialization runs only when the data volume is first created.
+4. Use the `projex_owner` credential to run the migration script if you are not using the automated setup above.
+
+Do not delete the Docker volume to troubleshoot; that destroys database contents. Docker Desktop is a preview/development option and must not be assumed to provide a hardened always-on production database service.
 
 ## Readiness requirements
 
