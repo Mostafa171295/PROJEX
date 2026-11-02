@@ -151,6 +151,31 @@ app.UseAuthorization();
 app.MapGet("/", () => Results.Ok(new { product = "PROJEX ENTERPRISE", version = "0.9.2-preview.1", status = "Identity hardening, platform administration and RBAC preview" }));
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestampUtc = DateTimeOffset.UtcNow }));
 
+// Liveness confirms the process is responding without depending on external services.
+app.MapGet("/health/live", () => Results.Ok(new { status = "Healthy", timestampUtc = DateTimeOffset.UtcNow }))
+    .AllowAnonymous();
+
+// Readiness is stricter: the API is ready for traffic only when PostgreSQL is reachable.
+// Never return provider exceptions, connection strings, or other infrastructure details.
+app.MapGet("/health/ready", async (ProjexDbContext db, CancellationToken ct) =>
+{
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync(ct);
+        return canConnect
+            ? Results.Ok(new { status = "Ready", timestampUtc = DateTimeOffset.UtcNow })
+            : Results.Json(new { status = "NotReady" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+    {
+        throw;
+    }
+    catch
+    {
+        return Results.Json(new { status = "NotReady" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+}).AllowAnonymous();
+
 app.MapPost("/api/v1/auth/login", async (LoginRequest request, ProjexDbContext db,
     UserManager<ProjexUser> users, SignInManager<ProjexUser> signInManager, ITenantContext tenantContext, IAuditWriter audit,
     IHttpContextAccessor httpAccessor, TokenIssuer tokenIssuer, CancellationToken ct) =>
