@@ -32,6 +32,7 @@ Source: "..\artifacts\package\Desktop\*"; DestDir: "{app}\Desktop"; Flags: ignor
 Source: "..\artifacts\package\README-RUN.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\artifacts\package\API\*"; DestDir: "{app}\Server\API"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 Source: "..\artifacts\package\ServerScripts\*"; DestDir: "{app}\Server\Scripts"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
+Source: "..\artifacts\package\ServerDatabase\Migrations\*"; DestDir: "{app}\Server\Database\Migrations"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 Source: "..\artifacts\package\ServerDocs\*"; DestDir: "{app}\Server\Docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Tasks: server
 
 [Icons]
