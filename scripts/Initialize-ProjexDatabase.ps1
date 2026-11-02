@@ -29,6 +29,9 @@ function New-ProjexSecret([int]$ByteCount = 48) {
         $rng.Dispose()
     }
 }
+function ConvertTo-SqlLiteral([string]$Value) {
+    return "'" + $Value.Replace("'", "''") + "'"
+}
 function ConvertFrom-SecureInput([Security.SecureString]$SecureValue) {
     $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureValue)
     try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) }
@@ -62,20 +65,26 @@ elseif ($SslMode -eq "VerifyFull" -and ([string]::IsNullOrWhiteSpace($RootCertif
 }
 
 $psql = (Get-Command $PsqlPath -ErrorAction Stop).Source
-$adminSecure = Read-Host "PostgreSQL administrator password for '$AdminUser' (input is hidden)" -AsSecureString
+ $adminSecure = Read-Host "PostgreSQL administrator password for '$AdminUser' (input is hidden)" -AsSecureString
 $adminPassword = ConvertFrom-SecureInput $adminSecure
 if ([string]::IsNullOrEmpty($adminPassword)) { throw "The PostgreSQL administrator password cannot be empty." }
 
-$ownerPassword = New-ProjexSecret
+$ownerSecure = Read-Host "Choose a strong password for the projex_owner migration account (at least 32 UTF-8 bytes)" -AsSecureString
+$ownerPassword = ConvertFrom-SecureInput $ownerSecure
+$ownerConfirmSecure = Read-Host "Confirm the projex_owner password" -AsSecureString
+$ownerConfirmation = ConvertFrom-SecureInput $ownerConfirmSecure
+if ([Text.Encoding]::UTF8.GetByteCount($ownerPassword) -lt 32) { throw "The projex_owner password must be at least 32 UTF-8 bytes." }
+if ($ownerPassword -cne $ownerConfirmation) { throw "The projex_owner password confirmation did not match." }
+
 $appPassword = New-ProjexSecret
 $jwtKey = New-ProjexSecret 64
 $tempRoot = Join-Path $env:ProgramData "PROJEX\Provisioning"
 $tempSql = Join-Path $tempRoot ([Guid]::NewGuid().ToString("N") + ".sql")
 $previousPgPassword = $env:PGPASSWORD
 $previousPgSslMode = $env:PGSSLMODE
+$previousPgSslRootCert = $env:PGSSLROOTCERT
 $previousSetupConnection = $env:PROJEX_SETUP_CONNECTION_STRING
 $previousSetupJwt = $env:PROJEX_SETUP_JWT_KEY
-$previousOwnerPassword = $env:PROJEX_SETUP_OWNER_PASSWORD
 
 try {
     $null = New-Item -ItemType Directory -Path $tempRoot -Force
@@ -83,15 +92,23 @@ try {
     & icacls.exe $tempRoot /inheritance:r /grant:r "*$($currentSid):(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" /T /C | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Could not restrict permissions on the temporary provisioning directory." }
 
+    $ownerSql = ConvertTo-SqlLiteral $ownerPassword
+    $appSql = ConvertTo-SqlLiteral $appPassword
     $sql = @"
-\set owner_pw '$ownerPassword'
-\set app_pw '$appPassword'
-SELECT format('CREATE ROLE projex_owner LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE', :'owner_pw')
-WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'projex_owner') \gexec
-ALTER ROLE projex_owner WITH LOGIN PASSWORD :'owner_pw' NOSUPERUSER NOBYPASSRLS NOCREATEROLE;
-SELECT format('CREATE ROLE projex_app LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB', :'app_pw')
-WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'projex_app') \gexec
-ALTER ROLE projex_app WITH LOGIN PASSWORD :'app_pw' NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB;
+DO $projex$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'projex_owner') THEN
+        EXECUTE format('CREATE ROLE projex_owner LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE', $ownerSql);
+    ELSE
+        EXECUTE format('ALTER ROLE projex_owner WITH LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE', $ownerSql);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'projex_app') THEN
+        EXECUTE format('CREATE ROLE projex_app LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB', $appSql);
+    ELSE
+        EXECUTE format('ALTER ROLE projex_app WITH LOGIN PASSWORD %L NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB', $appSql);
+    END IF;
+END
+$projex$;
 SELECT format('CREATE DATABASE %I OWNER projex_owner', '$Database')
 WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '$Database') \gexec
 ALTER DATABASE "$Database" OWNER TO projex_owner;
@@ -106,6 +123,7 @@ GRANT USAGE ON SCHEMA public TO projex_app;
 
     $env:PGPASSWORD = $adminPassword
     $env:PGSSLMODE = $SslMode.ToLowerInvariant()
+    if (-not [string]::IsNullOrWhiteSpace($RootCertificate)) { $env:PGSSLROOTCERT = (Resolve-Path -LiteralPath $RootCertificate).Path }
     Write-Host "Creating or updating the least-privileged PostgreSQL roles and database..."
     & $psql --no-password --host $DbHost --port $Port --username $AdminUser --dbname postgres --set ON_ERROR_STOP=1 --file $tempSql
     if ($LASTEXITCODE -ne 0) { throw "PostgreSQL role/database provisioning failed (psql exit code $LASTEXITCODE)." }
@@ -130,7 +148,6 @@ GRANT USAGE ON SCHEMA public TO projex_app;
 
     $env:PROJEX_SETUP_CONNECTION_STRING = $connectionString
     $env:PROJEX_SETUP_JWT_KEY = $jwtKey
-    $env:PROJEX_SETUP_OWNER_PASSWORD = $ownerPassword
     $env:PGPASSWORD = $null
 
     Write-Host "Installing the API as a Windows service and applying service-scoped configuration..."
@@ -147,9 +164,9 @@ GRANT USAGE ON SCHEMA public TO projex_app;
 finally {
     $env:PGPASSWORD = $previousPgPassword
     $env:PGSSLMODE = $previousPgSslMode
+    $env:PGSSLROOTCERT = $previousPgSslRootCert
     $env:PROJEX_SETUP_CONNECTION_STRING = $previousSetupConnection
     $env:PROJEX_SETUP_JWT_KEY = $previousSetupJwt
-    $env:PROJEX_SETUP_OWNER_PASSWORD = $previousOwnerPassword
     if (Test-Path -LiteralPath $tempSql) { Remove-Item -LiteralPath $tempSql -Force }
     $adminPassword = $null
     $ownerPassword = $null
@@ -157,4 +174,6 @@ finally {
     $jwtKey = $null
     $connectionString = $null
     if ($null -ne $adminSecure) { $adminSecure.Dispose() }
+    if ($null -ne $ownerSecure) { $ownerSecure.Dispose() }
+    if ($null -ne $ownerConfirmSecure) { $ownerConfirmSecure.Dispose() }
 }
