@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -70,7 +70,7 @@ jobs:
       PROJEX_BACKUP_ENCRYPTION_PASSWORD: ci-only-backup-encryption-password-strong
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PostgreSQL 16 client and OpenSSL
         run: |
           sudo apt-get update
@@ -150,7 +150,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Parse PowerShell deployment scripts
         shell: pwsh
         run: |
