@@ -51,7 +51,7 @@ if (-not (Test-Path -LiteralPath $PublishDirectory -PathType Container)) { throw
 $listenUri = $null
 if (-not [Uri]::TryCreate($ListenUrl, [UriKind]::Absolute, [ref]$listenUri)) { throw "ListenUrl must be an absolute URL." }
 if ($listenUri.Scheme -notin @("http", "https")) { throw "ListenUrl must use HTTP or HTTPS." }
-if ($listenUri.Scheme -eq "http" -and -not $listenUri.IsLoopback) { throw "Plain HTTP is permitted only on loopback. Use HTTPS for a non-loopback listener." }
+if (-not $listenUri.IsLoopback) { throw "The API service must bind to loopback. Terminate remote HTTPS on a reverse proxy or VPN gateway on this server." }
 if ($listenUri.Host -in @("0.0.0.0", "::", "*", "+")) { throw "Wildcard listeners are not allowed." }
 
 $ip = $null
