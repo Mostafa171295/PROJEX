@@ -191,9 +191,15 @@ finally {
     if (Test-Path -LiteralPath $tempSql) { Remove-Item -LiteralPath $tempSql -Force }
     $adminPassword = $null
     $ownerPassword = $null
+    $ownerConfirmation = $null
     $appPassword = $null
     $jwtKey = $null
+    $ownerSql = $null
+    $appSql = $null
+    $sql = $null
     $connectionString = $null
+    $connection = $null
+    $oldBuilder = $null
     if ($null -ne $adminSecure) { $adminSecure.Dispose() }
     if ($null -ne $ownerSecure) { $ownerSecure.Dispose() }
     if ($null -ne $ownerConfirmSecure) { $ownerConfirmSecure.Dispose() }
