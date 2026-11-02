@@ -150,10 +150,17 @@ jobs:
             "artifacts/package/Server/Manager/Projex.ServerManager.exe",
             "artifacts/package/Server/Scripts/Install-PROJEX-Local.ps1",
             "artifacts/package/Server/Scripts/Install-PROJEX-Server.ps1",
+            "artifacts/package/Start-PROJEX.bat",
+            "artifacts/package/Start-PROJEX-Server-Setup.bat",
+            "artifacts/package/README-RUN.txt",
             "artifacts/package/Install-PROJEX-Client.ps1",
             "artifacts/package/Server/Docs/CLIENT_SERVER_ARCHITECTURE.md"
           )) {
             if (!(Test-Path $required)) { throw "Required package file is missing: $required" }
+          }
+          $desktopLauncher = Get-Content artifacts/package/Start-PROJEX.bat -Raw
+          if ($desktopLauncher -notmatch "/health/ready" -or $desktopLauncher -notmatch "Start-PROJEX-Server-Setup.bat|Projex.ServerManager.exe") {
+            throw "Start-PROJEX.bat must check API/database readiness and direct first-run users to Server Control Center."
           }
           $assets = @(Get-ChildItem artifacts -File)
           if ($assets.Count -ne 1 -or $assets[0].Name -ne "PROJEX-Windows-win-x64.zip") {
