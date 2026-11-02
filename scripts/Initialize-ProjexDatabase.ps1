@@ -5,6 +5,7 @@ param(
     [ValidateRange(1, 65535)][int]$Port = 5432,
     [ValidatePattern('^[A-Za-z_][A-Za-z0-9_]{0,62}$')][string]$Database = "projex_enterprise",
     [string]$AdminUser = "postgres",
+    [string]$ServiceName = "PROJEX API",
     [string]$PsqlPath = "psql",
     [string]$MigrationsPath = (Join-Path $PSScriptRoot "..\database\migrations"),
     [string]$MigrateScriptPath = (Join-Path $PSScriptRoot "migrate.ps1"),
@@ -76,8 +77,28 @@ $ownerConfirmation = ConvertFrom-SecureInput $ownerConfirmSecure
 if ([Text.Encoding]::UTF8.GetByteCount($ownerPassword) -lt 32) { throw "The projex_owner password must be at least 32 UTF-8 bytes." }
 if ($ownerPassword -cne $ownerConfirmation) { throw "The projex_owner password confirmation did not match." }
 
+$existingServiceEnvironment = @()
+$serviceRegistryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$ServiceName"
+if (Test-Path -LiteralPath $serviceRegistryPath) {
+    $serviceEnvironmentProperty = Get-ItemProperty -LiteralPath $serviceRegistryPath -Name Environment -ErrorAction SilentlyContinue
+    if ($null -ne $serviceEnvironmentProperty) { $existingServiceEnvironment = @($serviceEnvironmentProperty.Environment) }
+}
+$existingConnectionString = $existingServiceEnvironment | Where-Object { $_ -like "ConnectionStrings__Projex=*" } | Select-Object -First 1
+$existingJwtEntry = $existingServiceEnvironment | Where-Object { $_ -like "Authentication__JwtSigningKey=*" } | Select-Object -First 1
 $appPassword = New-ProjexSecret
-$jwtKey = New-ProjexSecret 64
+if ($null -ne $existingConnectionString) {
+    $oldBuilder = [System.Data.Common.DbConnectionStringBuilder]::new()
+    $oldBuilder.ConnectionString = $existingConnectionString.Substring("ConnectionStrings__Projex=".Length)
+    if (-not $oldBuilder.ContainsKey("Password") -or [string]::IsNullOrWhiteSpace([string]$oldBuilder["Password"])) {
+        throw "The existing service connection string has no password. Repair service credentials before rerunning provisioning."
+    }
+    $appPassword = [string]$oldBuilder["Password"]
+}
+$jwtKey = if ($null -ne $existingJwtEntry -and $existingJwtEntry.Substring("Authentication__JwtSigningKey=".Length).Length -ge 32) {
+    $existingJwtEntry.Substring("Authentication__JwtSigningKey=".Length)
+} else {
+    New-ProjexSecret 64
+}
 $tempRoot = Join-Path $env:ProgramData "PROJEX\Provisioning"
 $tempSql = Join-Path $tempRoot ([Guid]::NewGuid().ToString("N") + ".sql")
 $previousPgPassword = $env:PGPASSWORD
@@ -151,7 +172,7 @@ GRANT USAGE ON SCHEMA public TO projex_app;
     $env:PGPASSWORD = $null
 
     Write-Host "Installing the API as a Windows service and applying service-scoped configuration..."
-    & $InstallServiceScriptPath -PublishDirectory $PublishDirectory -ListenUrl $ListenUrl
+    & $InstallServiceScriptPath -PublishDirectory $PublishDirectory -ServiceName $ServiceName -ListenUrl $ListenUrl
     if ($LASTEXITCODE -ne 0) { throw "Windows API service installation failed." }
 
     Write-Host "Checking API readiness and PostgreSQL connectivity..."
